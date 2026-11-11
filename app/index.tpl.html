@@ -12,6 +12,7 @@ body{margin:0;padding:0;overflow:hidden;user-select:none}
 .card[disabled]{opacity:.45;cursor:not-allowed}
 .err{color:var(--danger)}
 .fin{display:flex;gap:10px;flex-wrap:wrap}
+.kr .kt{flex:1 1 auto;min-width:0}.kr .seg{flex:0 0 auto;display:flex;width:auto}.kr .seg button{min-width:56px}
 </style></head><body>
 <div class="app">
   <div class="title" id="title">/*LOGO*/<b>WhatOS</b><span>Installer</span><span class="wb"><button id="wmin" title="Minimize"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 5h10" stroke="currentColor"/></svg></button><button class="x" id="wx" title="Close"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor"/></svg></button></span></div>
@@ -65,7 +66,8 @@ function renderManage(){
   $("#rail").querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{M.tab=+b.dataset.t;if(M.tab===1&&!M.diff&&!M.checking){M.checking=true;host.send({cmd:"updcheck"})}renderManage()});
   $("#back").hidden=true;$("#next").hidden=true;$("#hint").textContent=M.busy?"Working…":"";
   const P=$("#page"),d=M.data;
-  if(!d){P.innerHTML=`<h1>WhatOS</h1><p class="sub">Reading this PC…</p>`;return}
+  if(M.tab===1&&!M.diff&&!M.checking){M.checking=true;host.send({cmd:"updcheck"})}
+  if(!d&&M.tab!==1){P.innerHTML=`<h1>WhatOS</h1><p class="sub">Reading this PC…</p>`;return}
   const badge=st=>st==="on"?'<span class="mono" style="color:var(--ok)">On</span>':st==="yours"?'<span class="mono" style="color:var(--warn)">Changed by you</span>':st==="mixed"?'<span class="mono" style="color:var(--warn)">Partly on</span>':st==="n/a"?'<span class="mono">Not on this PC</span>':'<span class="mono">Off</span>';
   if(M.tab===0){
     const cats=[...new Set(d.groups.map(g=>g.cat))];
@@ -84,7 +86,7 @@ function renderManage(){
   if(M.tab===3){
     P.innerHTML=`<h1>Reinstall or make a USB</h1><p class="sub">Starts the installer: fresh WhatOS on this PC, or a USB stick for another PC.</p><button class="btn pri" id="toinst" style="align-self:flex-start">Open installer</button><h1 style="margin-top:28px">Remove WhatOS</h1><p class="sub">Turns every tweak back to the Windows default and removes this app. Apps you installed stay.</p><button class="btn" id="unin" style="align-self:flex-start;color:var(--danger)" ${M.busy?"disabled":""}>Restore Windows defaults and remove</button>`;
     $("#toinst").onclick=()=>{S.mode="install";S.p=0;render()};
-    $("#unin").onclick=()=>{if(confirm("Turn all WhatOS tweaks back to Windows defaults and remove the WhatOS app?")){M.busy=true;host.send({cmd:"uninstall"});renderManage()}};
+    $("#unin").onclick=()=>{if(!M.sure){M.sure=true;$("#unin").textContent="Click again to confirm";return}M.busy=true;host.send({cmd:"uninstall"});renderManage()};
   }
   P.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const [a,id]=b.dataset.a.split(":");mcall(a,id)});
 }
@@ -120,7 +122,7 @@ function render(){
     P.innerHTML=`<span class="pill ${a.req?'req':''}">${a.req?'Required':'Optional'} · ${i+1}/${APPS.length}</span><h1>${a.h}</h1>${a.note?`<p class="sub">${a.note}</p>`:a.multi?'<p class="sub">Pick any.</p>':''}<div class="grid">${a.o.map(([n,c,ic])=>card(n,ic,c,n,"",sel.has(n))).join("")}</div>`;
     if(a.req&&!sel.size)$("#hint").textContent="Pick one to continue";}
   if(p==="confirm"){const apps=APPS.flatMap(a=>[...S.apps[a.k]]),w=S.win==="whatos";
-    P.innerHTML=`<h1>Ready</h1><div class="sum"><div><small>Windows</small>${w?"WhatOS · Windows 11 from Microsoft":"My own ISO · "+esc(S.iso.name)}</div>${w?`<div><small>Edition</small>${{auto:"Auto ("+S.info.edition+")",home:"Home",pro:"Pro"}[S.ed]}</div><div><small>Defender · Xbox · Store</small>${[S.def,S.xbox,S.store].map(v=>v==="keep"?"Keep":"Remove").join(" · ")}</div>`:''}<div><small>Method</small>${S.method==="usb"?"USB stick · "+esc(usbOf(S.usb).name):"No USB ("+GBf(need())+" on C:)"}</div><div><small>Install on</small>${S.method==="usb"?"Pick after you boot the stick":"C: · replaces this Windows"}</div><div style="grid-column:1/-1"><small>Apps${w?" · "+apps.length:""}</small>${w?esc(apps.join(" · "))||"None":"Only with WhatOS"}</div></div>
+    P.innerHTML=`<h1>Ready</h1><div class="sum"><div><small>Windows</small>${w?"WhatOS · Windows 11 from Microsoft":"My own ISO · "+esc(S.iso.name)}</div>${w?`<div><small>Edition</small>${{auto:"Auto ("+S.info.edition+")",home:"Home",pro:"Pro"}[S.ed]}</div><div><small>Defender · Xbox · Store</small>${[S.def,S.xbox,S.store].map(v=>v==="keep"?"Keep":"Remove").join(" · ")}${S.mitig==="remove"?"<br>CPU patches off":""}</div>`:''}<div><small>Method</small>${S.method==="usb"?"USB stick · "+esc(usbOf(S.usb).name):"No USB ("+GBf(need())+" on C:)"}</div><div><small>Install on</small>${S.method==="usb"?"Pick after you boot the stick":"C: · replaces this Windows"}</div><div style="grid-column:1/-1"><small>Apps${w?" · "+apps.length:""}</small>${w?esc(apps.join(" · "))||"None":"Only with WhatOS"}</div></div>
     <div class="warnbox">${S.method==="usb"?"The USB stick is erased now. On the PC you boot it on, you choose the drive before anything is erased.":"After restart everything on C: is erased. Other drives are kept."} Name, password and Wi-Fi are set on the normal Windows screens.</div><label class="chk"><input type="checkbox" id="ok" ${S.ok?'checked':''}>I backed up my files</label>`;
     $("#ok").onchange=e=>{S.ok=e.target.checked;$("#next").disabled=!canNext()};}
   if(p==="install"){
@@ -164,7 +166,7 @@ window.chrome.webview.addEventListener("message",e=>{const m=e.data;
   if(m.type==="manage"){M.busy=false;if(m.data)M.data=m.data;else if(m.err)alert(m.err);render()}
   if(m.type==="diff"){M.checking=false;M.diff=m.data||{err:m.err||"Could not check for updates."};render()}
   if(m.type==="updated"){M.busy=false;M.diff=null;M.data=m.data||M.data;M.tab=0;render()}
-  if(m.type==="uninstalled"){M.busy=false;$("#page").innerHTML=`<h1>WhatOS removed</h1><p class="sub">Windows defaults are back. Restart your PC to finish.</p>`}
+  if(m.type==="uninstalled"){M.busy=false;$("#hint").textContent="";$("#page").innerHTML=`<h1>WhatOS removed</h1><p class="sub">Windows defaults are back. Restart your PC to finish.</p><div class="fin"><button class="btn pri" id="rb">Restart now</button><button class="btn" id="cl">Later</button></div>`;$("#rb").onclick=()=>host.send({cmd:"reboot"});$("#cl").onclick=()=>host.send({cmd:"close"})}
   if(m.type==="iso"){if(m.path)S.iso=m;render()}
   if(m.type==="ps"){const f=m.line.split("|");if(f[0]==="step")step(+f[1],+f[2],f.slice(3).join("|"));if(f[0]==="done"&&f[1]==="usb"){step(steps().length,0,"");$("#ph").textContent="USB stick ready";$("#pt").textContent="Plug it into any PC, start from it (boot menu key, often F12, F11 or Esc) and pick the drive.";$("#fin").innerHTML='<button class="btn pri" id="cl">Close</button>';$("#cl").onclick=()=>host.send({cmd:"close"})}else if(f[0]==="done"){if(S.rm){$("#ph").textContent="Installer removed";$("#pt").textContent="This PC is back to normal.";$("#fin").innerHTML='<button class="btn pri" id="cl">Close</button>';$("#cl").onclick=()=>host.send({cmd:"close"})}else if(f[1]!=="restart")finished()}if(f[0]==="error")failed(f.slice(1).join("|"))}
   if(m.type==="exit"&&m.code!==0&&!$("#again"))failed("Something went wrong. Log: %TEMP%\\WhatOS\\prepare.log");

@@ -18,16 +18,16 @@ $pw = @(
     @('7516b95f-f776-4464-8c53-06167f40cc99', 'aded5e82-b909-4619-9949-f5d71dac0bcb', 0),
     @('7516b95f-f776-4464-8c53-06167f40cc99', 'f1fbfde2-a960-4165-9f88-50667911ce96', 0))
 
-function Rp($r) { 'Registry::' + ($r -replace '^HKLM\\', 'HKEY_LOCAL_MACHINE\' -replace '^HKCU\\', 'HKEY_CURRENT_USER\') }
+function RegPath($r) { 'Registry::' + ($r -replace '^HKLM\\', 'HKEY_LOCAL_MACHINE\' -replace '^HKCU\\', 'HKEY_CURRENT_USER\') }
 function Norm($v) { if ($null -eq $v) { return $null }; if ($v -is [int] -or $v -is [long] -or $v -is [uint32]) { $x = [long]$v; if ($x -lt 0) { $x += 4294967296 }; return [string]$x }; [string]$v }
 function Get-Op($o) {
-    if ($o.r) { $v = $null; try { $v = Get-ItemPropertyValue (Rp $o.r) $o.n -EA Stop } catch {}; return (Norm $v) }
+    if ($o.r) { $v = $null; try { $v = Get-ItemPropertyValue (RegPath $o.r) $o.n -EA Stop } catch {}; return (Norm $v) }
     if ($o.s) { $k = "HKLM:\SYSTEM\CurrentControlSet\Services\$($o.s)"; if (-not (Test-Path $k)) { return 'n/a' }; return (Norm (Get-ItemPropertyValue $k Start -EA 0)) }
     switch ($o.ps) {
         'power' { if ((powercfg /getactivescheme) -match $hpScheme) { 'on' } else { 'off' } }
         'dyntick' { if ((bcdedit /enum '{current}' | Out-String) -match 'disabledynamictick\s+Yes') { 'on' } else { 'off' } }
         'hiber' { if ((Get-ItemPropertyValue HKLM:\SYSTEM\CurrentControlSet\Control\Power HibernateEnabled -EA 0) -eq 0) { 'on' } else { 'off' } }
-        'reserved' { try { if ((Get-WindowsReservedStorageState -EA Stop).ReservedStorageState -eq 'Disabled') { 'on' } else { 'off' } } catch { 'n/a' } }
+        'reserved' { if ((Get-ItemPropertyValue HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\ReserveManager ShippedWithReserves -EA 0) -eq 0) { 'on' } else { 'off' } }
     }
 }
 function Target($o, $on) {
@@ -38,7 +38,7 @@ function Target($o, $on) {
 }
 function Set-Op($o, $on) {
     if ($o.r) {
-        $p = Rp $o.r
+        $p = RegPath $o.r
         $want = if ($on) { $o.v } elseif ($o.PSObject.Properties.Name -contains 'd') { $o.d } else { $null }
         if ($null -eq $want) { Remove-ItemProperty $p $o.n -EA 0; return }
         if (-not (Test-Path $p)) { New-Item $p -Force | Out-Null }
@@ -67,7 +67,7 @@ function Set-Op($o, $on) {
         }
         'dyntick' { if ($on) { bcdedit /set disabledynamictick yes | Out-Null } else { bcdedit /deletevalue disabledynamictick | Out-Null } }
         'hiber' { if ($on) { powercfg /h off } else { powercfg /h on } }
-        'reserved' { try { Set-WindowsReservedStorageState -State $(if ($on) { 'Disabled' } else { 'Enabled' }) -EA Stop | Out-Null } catch {} }
+        'reserved' { Set-ItemProperty HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\ReserveManager ShippedWithReserves $(if ($on) { 0 } else { 1 }) -Type DWord -EA 0; Start-Process dism.exe "/Online /Set-ReservedStorageState /State:$(if ($on) { 'Disabled' } else { 'Enabled' })" -WindowStyle Hidden }
     }
 }
 function GState($g) {
@@ -126,7 +126,7 @@ switch ($Action) {
                 if ($o.ps) { Set-Op $o ($b -eq 'on') }
                 elseif ($b -eq (Target $o $true)) { Set-Op $o $true }
                 elseif ($b -eq (Target $o $false)) { Set-Op $o $false }
-                elseif ($o.r) { $p = Rp $o.r; if ($null -eq $b) { Remove-ItemProperty $p $o.n -EA 0 } else { $t = if ($o.t) { $o.t } else { 'DWord' }; $v = if ($t -eq 'DWord') { $x = [long]$b; if ($x -gt 2147483647) { $x -= 4294967296 }; [int]$x } else { $b }; New-ItemProperty $p $o.n -PropertyType $t -Value $v -Force | Out-Null } }
+                elseif ($o.r) { $p = RegPath $o.r; if ($null -eq $b) { Remove-ItemProperty $p $o.n -EA 0 } else { $t = if ($o.t) { $o.t } else { 'DWord' }; $v = if ($t -eq 'DWord') { $x = [long]$b; if ($x -gt 2147483647) { $x -= 4294967296 }; [int]$x } else { $b }; New-ItemProperty $p $o.n -PropertyType $t -Value $v -Force | Out-Null } }
                 elseif ($o.s) { Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\$($o.s)" Start ([int]$b) -EA 0 }
             }
             if ($h.a -eq 'on') { $S.applied = @($S.applied | ? { $_ -ne $g.id }) } elseif ($h.a -eq 'off') { $S.applied = @(@($S.applied) + $g.id | select -Unique) }

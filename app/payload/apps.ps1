@@ -6,6 +6,9 @@ $log = "$d\apps-$Mode.log"
 function W($m) { "$(Get-Date -f HH:mm:ss) $m" | Add-Content $log }
 function St($m) { Set-Content "$d\apps.status" $m }
 W "start as $(whoami)"
+St 'Waiting for the internet'
+for ($n = 0; $n -lt 43200; $n++) { try { $tc = New-Object Net.Sockets.TcpClient; $tc.Connect('1.1.1.1', 443); $tc.Close(); break } catch { Start-Sleep 2 } }
+W 'online'
 $list = @(Get-Content C:\Windows\WhatOS\apps.txt | ? { $_ -match "\|$Mode\|" })
 $wg = $null
 $direct = @($list | ? { $_ -match '^https?://' })
@@ -61,10 +64,15 @@ if ($wg -and $list.Count) {
         St "Installing $name ($i of $($list.Count))"
         $src = if ($id -match '^[0-9A-Z]{12}$') { 'msstore' } else { 'winget' }
         $o = "$d\wg-$i.txt"
-        $p = Start-Process $wg -ArgumentList "install --id $id -e --source $src --silent --accept-package-agreements --accept-source-agreements --disable-interactivity" -PassThru -WindowStyle Hidden -RedirectStandardOutput $o
-        $null = $p.Handle
-        if (-not $p.WaitForExit(900000)) { $p | Stop-Process -Force -EA 0; W "$name ($id) timed out after 15 min" }
-        else { W "$name ($id) exit $($p.ExitCode)"; if ($p.ExitCode) { W ((Get-Content $o -EA 0 | ? { $_.Trim() } | select -Last 3) -join ' | ') } }
+        for ($try = 1; $try -le 2; $try++) {
+            $p = Start-Process $wg -ArgumentList "install --id $id -e --source $src --silent --accept-package-agreements --accept-source-agreements --disable-interactivity" -PassThru -WindowStyle Hidden -RedirectStandardOutput $o
+            $null = $p.Handle
+            if (-not $p.WaitForExit(900000)) { $p | Stop-Process -Force -EA 0; W "$name ($id) timed out after 15 min"; break }
+            W "$name ($id) exit $($p.ExitCode)"
+            if (-not $p.ExitCode) { break }
+            W ((Get-Content $o -EA 0 | ? { $_.Trim() } | select -Last 3) -join ' | ')
+            if ($try -eq 1) { & $wg source reset --force 2>&1 | Out-Null; & $wg source update 2>&1 | Out-Null; W 'source reset, retry' }
+        }
     }
 } elseif ($list.Count) { W 'winget not available, apps skipped' }
 if ($Mode -eq 'admin') {
