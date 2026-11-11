@@ -62,7 +62,7 @@ function render(){
   const P=$("#page");$("#hint").textContent="";$("#back").hidden=p==="welcome"||p==="install";$("#next").hidden=p==="install";
   $("#next").textContent=p==="welcome"?"Get started":p==="confirm"?"Prepare":"Next";
   if(p==="welcome")P.innerHTML=`<div class="hero">${LOGO.replace('width="18" height="18"','width="64" height="64"')}<h1>Fresh Windows.<br>Only what you pick.</h1><p class="sub" style="margin:0">With or without a USB stick.</p>${S.last?'<button class="btn" id="uselast" style="align-self:flex-start">Use my last picks</button>':''}</div>`;
-  if(p==="win"){const nm=S.iso?esc(S.iso.name)+" · "+GBf(S.iso.size):"Pick a Windows 11 ISO";
+  if(p==="win"){const nm=S.iso?esc(S.iso.name)+" · "+GBf(S.iso.size):"Pick a Windows ISO";
     P.innerHTML=`<h1>Which Windows?</h1><div class="big">${card("whatos","W","linear-gradient(135deg,#4C8DFF,#8A5CFF)","WhatOS","Recommended · downloads Windows 11 from Microsoft",S.win==="whatos")}${card("iso",svgIso,"#3A4658","My own ISO",S.win==="iso"?nm+" · installs as-is":"Browse… · installs as-is",S.win==="iso")}</div>`;
     if(S.win==="iso"&&!S.iso)$("#hint").textContent="Pick an ISO file";}
   if(p==="edition"){const e=S.info?S.info.edition:"…";P.innerHTML=`<h1>Which edition?</h1><p class="sub">Same speed. Auto keeps your license working.</p><div class="big">${card("auto","A","#2D6CDF","Auto","Matches this PC's license · "+e,S.ed==="auto")}${card("home","H","#3A4658","Home","",S.ed==="home")}${card("pro","P","#3A4658","Pro","Adds Remote Desktop, Hyper-V",S.ed==="pro")}</div>`;}

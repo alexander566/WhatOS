@@ -218,7 +218,7 @@ $parts=@(Get-Partition -DiskNumber $d.Number | ?{ $_.Type -in 'Basic','IFS' } | 
 
         void BrowseIso()
         {
-            using (var d = new OpenFileDialog { Filter = "Windows ISO (*.iso)|*.iso", Title = "Pick a Windows 11 ISO" })
+            using (var d = new OpenFileDialog { Filter = "Windows ISO (*.iso)|*.iso", Title = "Pick a Windows ISO" })
             {
                 if (d.ShowDialog(this) != DialogResult.OK) { Send(new { type = "iso", path = (string)null }); return; }
                 var f = new FileInfo(d.FileName);
