@@ -13,7 +13,7 @@ License: GPL-3.0
 
 Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
 
-- Committers and reviewers: [alexander566](https://github.com/alexander566)
+- Authors and reviewers: [alexander566](https://github.com/alexander566)
 - Approvers: [alexander566](https://github.com/alexander566)
 
 Only binaries built by this repository's GitHub Actions workflow from the public source are signed.
