@@ -1,0 +1,7 @@
+app/out/
+app/bin/
+app/obj/
+app/ui/
+app/payload/whatpe.exe
+setup/pe/whatpe.exe
+setup/pe/whatpe.res
