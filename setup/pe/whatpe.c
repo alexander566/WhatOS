@@ -9,6 +9,8 @@
 #include <math.h>
 #include <shlwapi.h>
 #include <io.h>
+#include <ctype.h>
+#include <stdlib.h>
 
 #define C_DESK 0xFF0B0F14
 #define C_PANEL 0xFF18202B
@@ -267,6 +269,45 @@ static void load_ini(void)
     g_usb = GetPrivateProfileIntW(L"whatpe", L"usb", 0, g_ini);
 }
 
+static int smbios_uuid(wchar_t *o)
+{
+    DWORD n = GetSystemFirmwareTable('RSMB', 0, NULL, 0);
+    if (!n) return 0;
+    BYTE *b = malloc(n);
+    if (!b || GetSystemFirmwareTable('RSMB', 0, b, n) != n) { free(b); return 0; }
+    BYTE *p = b + 8, *e = b + 8 + *(DWORD *)(b + 4);
+    int ok = 0;
+    while (p + 4 <= e && !ok) {
+        BYTE t = p[0], l = p[1];
+        if (t == 1 && l >= 0x19 && p + 24 <= e) {
+            BYTE *u = p + 8;
+            swprintf(o, 40, L"%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X", u[3], u[2], u[1], u[0], u[5], u[4], u[7], u[6], u[8], u[9], u[10], u[11], u[12], u[13], u[14], u[15]);
+            ok = 1;
+        }
+        if (t == 127) break;
+        BYTE *q = p + l;
+        while (q + 1 < e && (q[0] || q[1])) q++;
+        p = q + 2;
+    }
+    free(b);
+    return ok;
+}
+static int same_pc(const wchar_t *f)
+{
+    char a[64] = {0};
+    FILE *h = _wfopen(f, L"rb");
+    if (!h) return 0;
+    fread(a, 1, 63, h);
+    fclose(h);
+    wchar_t s[64], u[40];
+    int i = 0;
+    for (const char *p = a; *p && i < 63; p++) if (isxdigit((unsigned char)*p) || *p == '-') s[i++] = (wchar_t)toupper((unsigned char)*p);
+    s[i] = 0;
+    if (!smbios_uuid(u)) return 0;
+    if (!wcscmp(u, L"FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF") || !wcscmp(u, L"00000000-0000-0000-0000-000000000000") || !wcscmp(u, L"03000200-0400-0500-0006-000700080009")) return 0;
+    plog(L"pc uuid %ls, saved %ls\r\n", u, s);
+    return !wcscmp(u, s);
+}
 #include "disk.inc"
 
 static void flush_vol(wchar_t L)
@@ -397,6 +438,14 @@ static DWORD WINAPI worker(LPVOID a)
     swprintf(c, 1024, L"dism /Apply-Image /ImageFile:%ls /Index:%d /ApplyDir:T:\\", img, g_index);
     if (run(c, 1)) return fail(1);
     set_progress(2, 0);
+    swprintf(c, 1024, L"%lc:\\whatos\\drivers\\uuid.txt", g_H);
+    if (same_pc(c)) {
+        swprintf(c, 1024, L"dism /Image:T:\\ /Add-Driver /Driver:%lc:\\whatos\\drivers\\d /Recurse", g_H);
+        if (run(c, 2)) plog(L"add-driver had errors, continuing\r\n");
+        swprintf(c, 1024, L"cmd /c xcopy /e /i /y /q %lc:\\whatos\\drivers\\wifi T:\\Windows\\Setup\\Scripts\\wifi", g_H);
+        run(c, 2);
+    }
+    set_progress(2, 0.05);
     if (g_whatos) {
         CreateDirectoryW(L"T:\\Windows\\Panther", NULL);
         swprintf(c, 1024, L"%lc:\\whatos\\pe.xml", g_H);
@@ -431,6 +480,7 @@ static DWORD WINAPI worker(LPVOID a)
     FlushFileBuffers(g_log);
     swprintf(c, 1024, L"%lc:\\whatos\\whatpe.log", g_H);
     CopyFileW(L"X:\\whatpe.log", c, FALSE);
+    CopyFileW(L"X:\\whatpe.log", L"T:\\Windows\\Temp\\whatpe.log", FALSE);
     if (!g_usb) {
         swprintf(c, 1024, L"%lc:\\whatos\\installed.flag", g_H);
         CloseHandle(CreateFileW(c, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL));

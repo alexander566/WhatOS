@@ -94,6 +94,16 @@ if ($dl) {
     if (-not (Test-Path $picks.iso)) { Fail 'The ISO file was not found.' }
     $need = (Get-Item $picks.iso).Length + 1GB
 }
+P 0 60 "Saving this PC's drivers"
+$drv = "$env:TEMP\whatos-drivers"
+Remove-Item $drv -Recurse -Force -EA 0
+New-Item -ItemType Directory "$drv\d", "$drv\wifi" -Force | Out-Null
+try { Export-WindowsDriver -Online -Destination "$drv\d" -EA Stop | Out-Null } catch { L "driver export: $($_.Exception.Message)" }
+netsh wlan export profile key=clear folder="$drv\wifi" 2>&1 | Out-Null
+Set-Content "$drv\uuid.txt" (Get-CimInstance Win32_ComputerSystemProduct).UUID -Encoding ascii
+$drvSize = [long](Get-ChildItem $drv -Recurse -File -EA 0 | Measure-Object Length -Sum).Sum
+L "drivers $([math]::Round($drvSize / 1MB)) MB, wifi profiles $(@(Get-ChildItem "$drv\wifi" -EA 0).Count), uuid $(Get-Content "$drv\uuid.txt")"
+$need += $drvSize + 64MB
 if ($usb) {
     if ($ud.Size -lt $need + 2.5GB) { Fail ("The USB stick is too small. It needs {0:N0} GB or more." -f (($need + 2.5GB) / 1GB)) }
     L "usb disk $($ud.Number) $($ud.FriendlyName) $($ud.Size)"
@@ -207,9 +217,12 @@ $H = "$W\whatos"
 New-Item -ItemType Directory $H -Force | Out-Null
 Set-Content "$W\whatos.tag" 'whatos'
 Copy-Item "$Payload\post.ps1", "$Payload\picks.json" $H
+Copy-Item $drv "$H\drivers" -Recurse -Force
+Remove-Item $drv -Recurse -Force -EA 0
 if ($picks.report) { Set-Content "$H\report.url" $picks.report -Encoding ascii }
 if ($whatos) {
-    Copy-Item "$Payload\pe.xml", "$Payload\offline.cmd", "$Payload\whatos-prep.ps1", "$Payload\edge.ps1", "$Payload\logo.png" $H
+    Copy-Item "$Payload\pe.xml", "$Payload\offline.cmd", "$Payload\whatos-prep.ps1", "$Payload\edge.ps1", "$Payload\updates.ps1", "$Payload\update-check.ps1", "$Payload\tweaks.json", "$Payload\logo.png" $H
+    if (Test-Path "$Payload\WhatOS.exe") { Copy-Item "$Payload\WhatOS.exe" $H }
     $b = { param($v) if ($v -eq 'remove') { '0' } else { '1' } }
     $keep = @()
     $map = @{ 'Photos' = 'Photos'; 'Notepad' = 'Notepad'; 'Snipping Tool' = 'ScreenSketch'; 'Terminal' = 'WindowsTerminal'; 'Calculator' = 'WindowsCalculator'; 'Paint' = 'Paint'; 'Camera' = 'WindowsCamera' }
@@ -222,7 +235,7 @@ if ($whatos) {
         'VLC' = 'VideoLAN.VLC|admin'; 'Spotify' = 'https://download.scdn.co/SpotifySetup.exe|user|Spotify|/silent'; 'OBS' = 'OBSProject.OBSStudio|admin' }
     $al = foreach ($k in 'browser', 'zip', 'games', 'chat', 'media') { foreach ($a in @($picks.apps.$k)) { $v = $ids[$a]; if ($v -match '^https?://') { $v } elseif ($v) { "$v|$a" } } }
     if ($al) { $al | Set-Content "$H\apps.txt" -Encoding ascii; Copy-Item "$Payload\apps.ps1" $H; L "apps $($al -join ', ')" }
-    @("set DEF=$(& $b $picks.def)", "set XBOX=$(& $b $picks.xbox)", "set STORE=$(& $b $picks.store)", "set KEEPAPPS=$($keep -join ' ')", "set EDGE=$edge") | Set-Content "$H\choices.cmd" -Encoding ascii
+    @("set MITIG=$(& $b $picks.mitig)", "set DEF=$(& $b $picks.def)", "set XBOX=$(& $b $picks.xbox)", "set STORE=$(& $b $picks.store)", "set KEEPAPPS=$($keep -join ' ')", "set EDGE=$edge") | Set-Content "$H\choices.cmd" -Encoding ascii
 }
 if ($picks.test -and $whatos) {
     Copy-Item "$Payload\pe-test.xml" "$H\pe.xml" -Force

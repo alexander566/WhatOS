@@ -33,7 +33,8 @@ const APPS=[
  {k:"media",h:"Media",req:0,multi:1,o:[["VLC","#E85E00","VLC"],["Spotify","#1DB954","Sp"],["OBS","#302E31","OBS"]]},
  {k:"winapps",h:"Windows apps",req:0,multi:1,note:"All kept. Tap the ones you don't want.",o:[["Photos","#2B6CB0","Ph"],["Notepad","#4A5568","Np"],["Snipping Tool","#B83280","Sn"],["Terminal","#2D3748","Tm"],["Calculator","#4A5568","Ca"],["Paint","#2B6CB0","Pa"],["Camera","#2D3748","Cm"]]}
 ];
-const S={p:0,win:null,iso:null,ed:null,method:null,def:null,xbox:null,store:null,apps:{},ok:false,info:null,run:null};
+const M={tab:0,data:null,diff:null,busy:false,checking:false};
+const S={p:0,win:null,iso:null,ed:null,method:null,def:null,xbox:null,store:null,mitig:"keep",apps:{},ok:false,info:null,run:null};
 const initApps=()=>APPS.forEach(a=>S.apps[a.k]=new Set(a.k==="winapps"?a.o.map(o=>o[0]):[]));initApps();
 const PAGES=["welcome","win","edition","method","target","defender",...APPS.map((_,i)=>"app"+i),"confirm","install"];
 const railOf=p=>["welcome","win","edition"].includes(p)?0:["method","target"].includes(p)?1:p==="defender"?2:p.startsWith("app")?3:p==="confirm"?4:5;
@@ -56,7 +57,39 @@ function canNext(){
   if(p.startsWith("app")){const a=APPS[+p.slice(3)];return !a.req||S.apps[a.k].size>0}
   if(p==="confirm")return S.ok; return true;
 }
+
+const MR=["Tweaks","Updates","History","Reinstall"];
+function mcall(action,id){M.busy=true;renderManage();host.send({cmd:"manage",action,id:id||""})}
+function renderManage(){
+  $("#rail").innerHTML=MR.map((n,i)=>`<div class="rs ${i===M.tab?'on':''}" data-t="${i}" style="cursor:default"><span class="n">${i+1}</span><span class="l">${n}</span></div>`).join("");
+  $("#rail").querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{M.tab=+b.dataset.t;if(M.tab===1&&!M.diff&&!M.checking){M.checking=true;host.send({cmd:"updcheck"})}renderManage()});
+  $("#back").hidden=true;$("#next").hidden=true;$("#hint").textContent=M.busy?"Working…":"";
+  const P=$("#page"),d=M.data;
+  if(!d){P.innerHTML=`<h1>WhatOS</h1><p class="sub">Reading this PC…</p>`;return}
+  const badge=st=>st==="on"?'<span class="mono" style="color:var(--ok)">On</span>':st==="yours"?'<span class="mono" style="color:var(--warn)">Changed by you</span>':st==="mixed"?'<span class="mono" style="color:var(--warn)">Partly on</span>':st==="n/a"?'<span class="mono">Not on this PC</span>':'<span class="mono">Off</span>';
+  if(M.tab===0){
+    const cats=[...new Set(d.groups.map(g=>g.cat))];
+    P.innerHTML=`<h1>Your tweaks</h1><p class="sub">Turn any of them off or back on. Changes apply right away; some need a restart.</p><div class="krs" style="overflow:auto">${cats.map(c=>`<small class="mono" style="margin-top:6px">${esc(c)}</small>`+d.groups.filter(g=>g.cat===c).map(g=>`<div class="kr"><span class="kt">${esc(g.name)} ${badge(g.state)}<small>${esc(g.desc)}</small></span><span class="seg"><button class="${g.state==="on"?"on":""}" data-a="apply:${g.id}" ${M.busy||g.state==="n/a"?"disabled":""}>On</button><button class="${g.state==="off"?"on rm":""}" data-a="revert:${g.id}" ${M.busy||g.state==="n/a"?"disabled":""}>Off</button></span></div>`).join("")).join("")}</div>`;
+  }
+  if(M.tab===1){
+    const x=M.diff;
+    P.innerHTML=`<h1>Updates</h1>`+(!x?`<p class="sub">Checking GitHub for new tweaks…</p>`:x.err?`<p class="sub err">${esc(x.err)}</p><button class="btn" id="rechk" style="align-self:flex-start">Try again</button>`:!x.changes.length?`<p class="sub">You're up to date (tweak set v${x.version}).</p><button class="btn" id="rechk" style="align-self:flex-start">Check again</button>`:`<p class="sub">Tweak set v${x.version} is out. Tweaks you turned off or changed stay as they are.</p><div class="krs">${x.changes.map(c=>`<div class="kr"><span class="kt">${esc(c.name)} <span class="mono">${c.new?"New":"Improved"}</span><small>${esc(c.desc)}</small></span></div>`).join("")}</div><button class="btn pri" id="updgo" style="align-self:flex-start" ${M.busy?"disabled":""}>Update</button>`);
+    const r=$("#rechk");if(r)r.onclick=()=>{M.diff=null;M.checking=true;host.send({cmd:"updcheck"});renderManage()};
+    const u=$("#updgo");if(u)u.onclick=()=>{M.busy=true;host.send({cmd:"updapply"});renderManage()};
+  }
+  if(M.tab===2){
+    P.innerHTML=`<h1>History</h1>`+(d.history.length?`<div class="krs">${d.history.map(h=>`<div class="kr"><span class="kt">${esc(h.name)} <span class="mono">${h.a==="on"?"turned on":h.a==="off"?"turned off":h.a==="update"?"updated":"restored"}</span><small>${esc(h.t)}</small></span></div>`).join("")}</div><button class="btn" id="undo" style="align-self:flex-start" ${M.busy?"disabled":""}>Undo last change</button>`:`<p class="sub">Nothing changed yet.</p>`);
+    const u=$("#undo");if(u)u.onclick=()=>mcall("undo");
+  }
+  if(M.tab===3){
+    P.innerHTML=`<h1>Reinstall or make a USB</h1><p class="sub">Starts the installer: fresh WhatOS on this PC, or a USB stick for another PC.</p><button class="btn pri" id="toinst" style="align-self:flex-start">Open installer</button><h1 style="margin-top:28px">Remove WhatOS</h1><p class="sub">Turns every tweak back to the Windows default and removes this app. Apps you installed stay.</p><button class="btn" id="unin" style="align-self:flex-start;color:var(--danger)" ${M.busy?"disabled":""}>Restore Windows defaults and remove</button>`;
+    $("#toinst").onclick=()=>{S.mode="install";S.p=0;render()};
+    $("#unin").onclick=()=>{if(confirm("Turn all WhatOS tweaks back to Windows defaults and remove the WhatOS app?")){M.busy=true;host.send({cmd:"uninstall"});renderManage()}};
+  }
+  P.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const [a,id]=b.dataset.a.split(":");mcall(a,id)});
+}
 function render(){
+  if(S.mode==="manage")return renderManage();
   const p=PAGES[S.p],r=railOf(p);
   $("#rail").innerHTML=RAIL.map((n,i)=>`<div class="rs ${i===r?'on':i<r?'done':''}"><span class="n">${i<r?'✓':i+1}</span><span class="l">${n}</span></div>`).join("");
   const P=$("#page");$("#hint").textContent="";$("#back").hidden=p==="welcome"||p==="install";$("#next").hidden=p==="install";
@@ -80,7 +113,7 @@ function render(){
        <div class="legend"><span><i style="background:#2A3A52"></i>Windows</span><span><i style="background:#7A4CE0"></i>Temporary installer</span><span><i style="background:#1D2633"></i>Free</span></div>
        ${I.bitlocker?'<div class="warnbox">BitLocker is on for C:. That is fine, C: is replaced anyway.</div>':''}${bad?`<div class="warnbox">${bad}</div>`:''}`;}}
   if(p==="defender"){const q=(k,ic,col,t,d)=>`<div class="kr"><span class="ic sm" style="background:${col}">${ic}</span><span class="kt">${t}<small>${d}</small></span><span class="seg"><button class="${S[k]==="keep"?"on":""}" data-k="${k}:keep">Keep</button><button class="${S[k]==="remove"?"on rm":""}" data-k="${k}:remove">Remove</button></span></div>`;
-    P.innerHTML=`<h1>Keep or remove?</h1><div class="krs">${q("def",'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/></svg>',"#2F855A","Defender","Antivirus")}${q("xbox",'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><path d="M7 8h10a4 4 0 0 1 4 4v1.5a3 3 0 0 1-5.3 1.9L14.5 14h-5l-1.2 1.4A3 3 0 0 1 3 13.5V12a4 4 0 0 1 4-4z"/><path d="M8 10.5v3M6.5 12h3"/></svg>',"#107C10","Xbox","App, Game Bar, Game Pass")}${q("store",'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8h16l-1.2 11a2 2 0 0 1-2 1.8H7.2a2 2 0 0 1-2-1.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',"#3182CE","Store","Store apps")}</div>${S.def==="remove"?'<p class="mono" style="margin:0;color:var(--warn)">No antivirus. Only open files you trust.</p>':''}`;
+    P.innerHTML=`<h1>Keep or remove?</h1><div class="krs">${q("def",'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/></svg>',"#2F855A","Defender","Antivirus")}${q("xbox",'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><path d="M7 8h10a4 4 0 0 1 4 4v1.5a3 3 0 0 1-5.3 1.9L14.5 14h-5l-1.2 1.4A3 3 0 0 1 3 13.5V12a4 4 0 0 1 4-4z"/><path d="M8 10.5v3M6.5 12h3"/></svg>',"#107C10","Xbox","App, Game Bar, Game Pass")}${q("store",'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8h16l-1.2 11a2 2 0 0 1-2 1.8H7.2a2 2 0 0 1-2-1.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',"#3182CE","Store","Store apps")}${q("mitig",'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>',"#6B46C1","CPU security patches","Expert · removing gives about 3-7% more FPS")}</div>${S.def==="remove"?'<p class="mono" style="margin:0;color:var(--warn)">No antivirus. Only open files you trust.</p>':''}${S.mitig==="remove"?'<p class="mono" style="margin:0;color:var(--warn)">Spectre/Meltdown patches off. Only for gaming PCs you trust.</p>':''}`;
     P.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{const [k,v]=b.dataset.k.split(":");S[k]=v;render()});
     if(!canNext())$("#hint").textContent="Pick all three";}
   if(p.startsWith("app")){const i=+p.slice(3),a=APPS[i],sel=S.apps[a.k];
@@ -92,8 +125,8 @@ function render(){
     $("#ok").onchange=e=>{S.ok=e.target.checked;$("#next").disabled=!canNext()};}
   if(p==="install"){
     P.innerHTML=`<h1 id="ph">Preparing…</h1><p class="sub mono" id="pt">${S.method==="usb"?"Only the USB stick is changed.":"Nothing is erased until you restart."}</p><div class="prog">${steps().map((s,i)=>`<div class="ps" data-i="${i}"><span class="s">${i+1}</span><span>${s}</span><span class="mono pc"></span><span class="b"><i></i></span></div>`).join("")}</div><div class="fin" id="fin"></div>`;
-    if(!S.run){S.run=1;host.send({cmd:"prepare",picks:{win:S.win,usb:S.usb,iso:S.win==="iso"?S.iso.path:null,ed:S.ed,method:S.method,def:S.def,xbox:S.xbox,store:S.store,apps:Object.fromEntries(APPS.map(a=>[a.k,[...S.apps[a.k]]]))}})}}
-  if(p==="welcome"&&S.last)$("#uselast").onclick=()=>{const L=S.last;S.win=L.win==="iso"?null:L.win;S.ed=L.ed;S.def=L.def;S.xbox=L.xbox;S.store=L.store;
+    if(!S.run){S.run=1;host.send({cmd:"prepare",picks:{win:S.win,usb:S.usb,iso:S.win==="iso"?S.iso.path:null,ed:S.ed,method:S.method,def:S.def,xbox:S.xbox,store:S.store,mitig:S.mitig,apps:Object.fromEntries(APPS.map(a=>[a.k,[...S.apps[a.k]]]))}})}}
+  if(p==="welcome"&&S.last)$("#uselast").onclick=()=>{const L=S.last;S.win=L.win==="iso"?null:L.win;S.ed=L.ed;S.def=L.def;S.xbox=L.xbox;S.store=L.store;S.mitig=L.mitig||"keep";
     APPS.forEach(a=>{S.apps[a.k]=new Set((L.apps&&L.apps[a.k])||[])});S.p=PAGES.indexOf(S.win?"method":"win");render()};
   P.style.zoom=1;if(P.scrollHeight>P.clientHeight+1)P.style.zoom=Math.max(.6,(P.clientHeight/P.scrollHeight)*.98);
   P.querySelectorAll(".card").forEach(b=>b.onclick=()=>pick(p,b.dataset.id));
@@ -123,11 +156,15 @@ function finished(){
 function failed(msg){
   $("#ph").innerHTML='<span class="err">Stopped</span>';$("#pt").textContent=msg;
   $("#fin").innerHTML='<button class="btn" id="again">Start over</button>';
-  $("#again").onclick=()=>{S.run=null;S.p=0;S.win=S.iso=S.method=S.ed=S.def=S.xbox=S.store=null;S.ok=false;initApps();render()};
+  $("#again").onclick=()=>{S.run=null;S.p=0;S.win=S.iso=S.method=S.ed=S.def=S.xbox=S.store=null;S.mitig="keep";S.ok=false;initApps();render()};
 }
 window.chrome.webview.addEventListener("message",e=>{const m=e.data;
   if(m.type==="last"){S.last=m.picks;if(PAGES[S.p]==="welcome")render()}
-  if(m.type==="info"){S.info=m.info;render()}
+  if(m.type==="info"){S.info=m.info;if(m.info.whatos&&!S.mode){S.mode="manage";host.send({cmd:"manage",action:"status"})}render()}
+  if(m.type==="manage"){M.busy=false;if(m.data)M.data=m.data;else if(m.err)alert(m.err);render()}
+  if(m.type==="diff"){M.checking=false;M.diff=m.data||{err:m.err||"Could not check for updates."};render()}
+  if(m.type==="updated"){M.busy=false;M.diff=null;M.data=m.data||M.data;M.tab=0;render()}
+  if(m.type==="uninstalled"){M.busy=false;$("#page").innerHTML=`<h1>WhatOS removed</h1><p class="sub">Windows defaults are back. Restart your PC to finish.</p>`}
   if(m.type==="iso"){if(m.path)S.iso=m;render()}
   if(m.type==="ps"){const f=m.line.split("|");if(f[0]==="step")step(+f[1],+f[2],f.slice(3).join("|"));if(f[0]==="done"&&f[1]==="usb"){step(steps().length,0,"");$("#ph").textContent="USB stick ready";$("#pt").textContent="Plug it into any PC, start from it (boot menu key, often F12, F11 or Esc) and pick the drive.";$("#fin").innerHTML='<button class="btn pri" id="cl">Close</button>';$("#cl").onclick=()=>host.send({cmd:"close"})}else if(f[0]==="done"){if(S.rm){$("#ph").textContent="Installer removed";$("#pt").textContent="This PC is back to normal.";$("#fin").innerHTML='<button class="btn pri" id="cl">Close</button>';$("#cl").onclick=()=>host.send({cmd:"close"})}else if(f[1]!=="restart")finished()}if(f[0]==="error")failed(f.slice(1).join("|"))}
   if(m.type==="exit"&&m.code!==0&&!$("#again"))failed("Something went wrong. Log: %TEMP%\\WhatOS\\prepare.log");

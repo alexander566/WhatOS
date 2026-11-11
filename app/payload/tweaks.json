@@ -1,0 +1,72 @@
+{
+ "version": 1,
+ "groups": [
+  {"id": "services", "name": "Unused background services", "desc": "Telemetry, maps, print, smart card, phone, error reporting and other services most PCs never use.", "cat": "Performance", "ops": [
+   {"s": "MapsBroker", "v": 4, "d": 2}, {"s": "CDPUserSvc", "v": 4, "d": 2}, {"s": "TrkWks", "v": 4, "d": 2}, {"s": "edgeupdate", "v": 4, "d": 2},
+   {"s": "edgeupdatem", "v": 4, "d": 3}, {"s": "WSAIFabricSvc", "v": 4, "d": 2}, {"s": "whesvc", "v": 4, "d": 3}, {"s": "DiagTrack", "v": 4, "d": 2},
+   {"s": "PcaSvc", "v": 4, "d": 2}, {"s": "InventorySvc", "v": 4, "d": 3}, {"s": "Spooler", "v": 4, "d": 2}, {"s": "PrintNotify", "v": 4, "d": 3},
+   {"s": "SysMain", "v": 4, "d": 2}, {"s": "WerSvc", "v": 4, "d": 3}, {"s": "wercplsupport", "v": 4, "d": 3}, {"s": "wisvc", "v": 4, "d": 3},
+   {"s": "WdiServiceHost", "v": 4, "d": 3}, {"s": "WdiSystemHost", "v": 4, "d": 3}, {"s": "Wecsvc", "v": 4, "d": 3}, {"s": "dmwappushservice", "v": 4, "d": 3},
+   {"s": "RetailDemo", "v": 4, "d": 3}, {"s": "WpcMonSvc", "v": 4, "d": 3}, {"s": "PhoneSvc", "v": 4, "d": 3}, {"s": "DPS", "v": 4, "d": 2},
+   {"s": "TroubleshootingSvc", "v": 4, "d": 3}, {"s": "DusmSvc", "v": 4, "d": 2}, {"s": "SEMgrSvc", "v": 4, "d": 3}, {"s": "SCardSvr", "v": 4, "d": 3},
+   {"s": "ScDeviceEnum", "v": 4, "d": 3}, {"s": "SCPolicySvc", "v": 4, "d": 3}, {"s": "WMPNetworkSvc", "v": 4, "d": 3}, {"s": "DisplayEnhancementService", "v": 4, "d": 3},
+   {"s": "lmhosts", "v": 4, "d": 3}, {"s": "CDPSvc", "v": 4, "d": 2}, {"s": "WbioSrvc", "v": 4, "d": 3}]},
+  {"id": "power", "name": "WhatOS power plan", "desc": "High performance plan with tested CPU idle and boost settings (plugged in).", "cat": "Performance", "ops": [
+   {"ps": "power"}]},
+  {"id": "sched", "name": "Scheduler tweaks", "desc": "No power throttling of background apps, one service per process, no dynamic timer tick.", "cat": "Performance", "ops": [
+   {"r": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottling", "n": "PowerThrottlingOff", "v": 1},
+   {"r": "HKLM\\SYSTEM\\CurrentControlSet\\Control", "n": "SvcHostSplitThresholdInKB", "v": 4294967295, "d": 3670016},
+   {"ps": "dyntick"}]},
+  {"id": "prefetch", "name": "Prefetch off", "desc": "Stops Windows preloading apps in the background.", "cat": "Performance", "ops": [
+   {"r": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters", "n": "EnablePrefetcher", "v": 0, "d": 3},
+   {"r": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters", "n": "EnableSuperfetch", "v": 0, "d": 3}]},
+  {"id": "hiber", "name": "Hibernation and Fast Startup off", "desc": "Clean starts every time and frees disk space.", "cat": "System", "ops": [
+   {"ps": "hiber"}]},
+  {"id": "reserved", "name": "Reserved storage off", "desc": "Gives back the ~7 GB Windows keeps for updates.", "cat": "System", "ops": [
+   {"ps": "reserved"}]},
+  {"id": "ads", "name": "Ads, suggestions and Copilot off", "desc": "No suggested apps, tips, news, web results in Start, or Copilot.", "cat": "Privacy", "ops": [
+   {"r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent", "n": "DisableWindowsConsumerFeatures", "v": 1},
+   {"r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent", "n": "DisableCloudOptimizedContent", "v": 1},
+   {"r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent", "n": "DisableConsumerAccountStateContent", "v": 1},
+   {"r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent", "n": "DisableSoftLanding", "v": 1},
+   {"r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsCopilot", "n": "TurnOffWindowsCopilot", "v": 1},
+   {"r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI", "n": "DisableAIDataAnalysis", "v": 1},
+   {"r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Dsh", "n": "AllowNewsAndInterests", "v": 0},
+   {"r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search", "n": "DisableWebSearch", "v": 1},
+   {"r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search", "n": "AllowCortana", "v": 0},
+   {"r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "n": "SubscribedContent-338388Enabled", "v": 0, "d": 1},
+   {"r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "n": "SystemPaneSuggestionsEnabled", "v": 0, "d": 1},
+   {"r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "n": "SilentInstalledAppsEnabled", "v": 0, "d": 1}]},
+  {"id": "bgapps", "name": "Background apps off", "desc": "Store apps can't run in the background.", "cat": "Performance", "ops": [
+   {"r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy", "n": "LetAppsRunInBackground", "v": 2}]},
+  {"id": "delivery", "name": "Delivery Optimization off", "desc": "Your PC doesn't upload updates to other PCs.", "cat": "Privacy", "ops": [
+   {"r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization", "n": "DODownloadMode", "v": 99}]},
+  {"id": "gamedvr", "name": "Game DVR off", "desc": "No background game recording.", "cat": "Gaming", "ops": [
+   {"r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\GameDVR", "n": "AllowGameDVR", "v": 0},
+   {"r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\GameDVR", "n": "AppCaptureEnabled", "v": 0, "d": 1},
+   {"r": "HKCU\\System\\GameConfigStore", "n": "GameDVR_Enabled", "v": 0, "d": 1}]},
+  {"id": "updates", "name": "Windows Update on demand", "desc": "No automatic updates or restarts. WhatOS updated everything at setup.", "cat": "System", "ops": [
+   {"s": "WaaSMedicSvc", "v": 4, "d": 3}, {"s": "UsoSvc", "v": 4, "d": 2},
+   {"r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU", "n": "NoAutoUpdate", "v": 1},
+   {"r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU", "n": "NoAutoRebootWithLoggedOnUsers", "v": 1},
+   {"r": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer", "n": "SettingsPageVisibility", "t": "String", "v": "hide:windowsupdate"}]},
+  {"id": "smartscreen", "name": "SmartScreen off", "desc": "No 'Windows protected your PC' prompts.", "cat": "System", "ops": [
+   {"r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System", "n": "EnableSmartScreen", "v": 0},
+   {"r": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer", "n": "SmartScreenEnabled", "t": "String", "v": "Off"}]},
+  {"id": "mouse", "name": "Mouse acceleration off", "desc": "1:1 mouse movement.", "cat": "Gaming", "ops": [
+   {"r": "HKCU\\Control Panel\\Mouse", "n": "MouseSpeed", "t": "String", "v": "0", "d": "1"},
+   {"r": "HKCU\\Control Panel\\Mouse", "n": "MouseThreshold1", "t": "String", "v": "0", "d": "6"},
+   {"r": "HKCU\\Control Panel\\Mouse", "n": "MouseThreshold2", "t": "String", "v": "0", "d": "10"}]},
+  {"id": "keys", "name": "Sticky Keys shortcuts off", "desc": "Pressing Shift 5 times in a game no longer pops up Sticky Keys.", "cat": "Gaming", "ops": [
+   {"r": "HKCU\\Control Panel\\Accessibility\\StickyKeys", "n": "Flags", "t": "String", "v": "506", "d": "510"},
+   {"r": "HKCU\\Control Panel\\Accessibility\\Keyboard Response", "n": "Flags", "t": "String", "v": "122", "d": "126"},
+   {"r": "HKCU\\Control Panel\\Accessibility\\ToggleKeys", "n": "Flags", "t": "String", "v": "58", "d": "62"}]},
+  {"id": "startup", "name": "No startup delay", "desc": "Startup apps open right away.", "cat": "System", "ops": [
+   {"r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Serialize", "n": "StartupDelayInMSec", "v": 0}]},
+  {"id": "gpu", "name": "Windowed game optimizations", "desc": "Flip model for windowed games, VRR on, Auto HDR off.", "cat": "Gaming", "ops": [
+   {"r": "HKCU\\Software\\Microsoft\\DirectX\\UserGpuPreferences", "n": "DirectXUserGlobalSettings", "t": "String", "v": "SwapEffectUpgradeEnable=1;VRROptimizeEnable=1;AutoHDREnable=0;"}]},
+  {"id": "mitig", "name": "CPU security patches off", "desc": "Expert: about 3-7% more FPS, less protection against Spectre/Meltdown-type attacks.", "cat": "Expert", "expert": true, "ops": [
+   {"r": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management", "n": "FeatureSettingsOverride", "v": 3},
+   {"r": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management", "n": "FeatureSettingsOverrideMask", "v": 3}]}
+ ]
+}

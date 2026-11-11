@@ -2,9 +2,9 @@
 setlocal enabledelayedexpansion
 set T=%1
 set H=%2
-set DEF=1& set XBOX=1& set STORE=1& set EDGE=1& set KEEPAPPS=Notepad Photos ScreenSketch WindowsTerminal WindowsCalculator Paint WindowsCamera
+set MITIG=1& set DEF=1& set XBOX=1& set STORE=1& set EDGE=1& set KEEPAPPS=Notepad Photos ScreenSketch WindowsTerminal WindowsCalculator Paint WindowsCamera
 if exist %H%:\whatos\choices.cmd call %H%:\whatos\choices.cmd
-echo choices DEF=%DEF% XBOX=%XBOX% STORE=%STORE% EDGE=%EDGE% KEEPAPPS=%KEEPAPPS%
+echo choices MITIG=%MITIG% DEF=%DEF% XBOX=%XBOX% STORE=%STORE% EDGE=%EDGE% KEEPAPPS=%KEEPAPPS%
 
 reg load HKLM\OSYS %T%:\Windows\System32\config\SYSTEM >nul
 set S=HKLM\OSYS\ControlSet001\Services
@@ -20,6 +20,8 @@ if "%DEF%"=="0" for %%V in (WinDefend WdBoot WdFilter WdNisDrv WdNisSvc Sense Se
 echo services off !N!
 reg add HKLM\OSYS\ControlSet001\Control /v SvcHostSplitThresholdInKB /t REG_DWORD /d 4294967295 /f >nul
 reg add HKLM\OSYS\ControlSet001\Control\Power\PowerThrottling /v PowerThrottlingOff /t REG_DWORD /d 1 /f >nul
+if "%MITIG%"=="0" reg add "HKLM\OSYS\ControlSet001\Control\Session Manager\Memory Management" /v FeatureSettingsOverride /t REG_DWORD /d 3 /f >nul
+if "%MITIG%"=="0" reg add "HKLM\OSYS\ControlSet001\Control\Session Manager\Memory Management" /v FeatureSettingsOverrideMask /t REG_DWORD /d 3 /f >nul
 set PF="HKLM\OSYS\ControlSet001\Control\Session Manager\Memory Management\PrefetchParameters"
 reg add %PF% /v EnablePrefetcher /t REG_DWORD /d 0 /f >nul
 reg add %PF% /v EnableSuperfetch /t REG_DWORD /d 0 /f >nul
@@ -42,6 +44,11 @@ echo system hive done
 mkdir %T%:\Windows\WhatOS 2>nul
 copy /y %H%:\whatos\whatos-prep.ps1 %T%:\Windows\WhatOS\ >nul
 copy /y %H%:\whatos\edge.ps1 %T%:\Windows\WhatOS\ >nul
+copy /y %H%:\whatos\updates.ps1 %T%:\Windows\WhatOS\ >nul
+copy /y %H%:\whatos\update-check.ps1 %T%:\Windows\WhatOS\ >nul
+copy /y %H%:\whatos\tweaks.json %T%:\Windows\WhatOS\ >nul
+if exist %H%:\whatos\WhatOS.exe mkdir "%T%:\Program Files\WhatOS" 2>nul
+if exist %H%:\whatos\WhatOS.exe copy /y %H%:\whatos\WhatOS.exe "%T%:\Program Files\WhatOS\" >nul
 copy /y %H%:\whatos\logo.png %T%:\Windows\WhatOS\ >nul
 if exist %H%:\whatos\report.url copy /y %H%:\whatos\report.url %T%:\Windows\WhatOS\ >nul
 if exist %H%:\whatos\ssh xcopy /e /i /y %H%:\whatos\ssh %T%:\Windows\WhatOS\ssh >nul
@@ -58,6 +65,16 @@ reg load HKLM\OS %T%:\Windows\System32\config\SOFTWARE >nul
 set P=HKLM\OS\Policies\Microsoft
 set AS="HKLM\OS\Microsoft\Active Setup\Installed Components\{7A1E5B2C-0A70-4D05-9E11-00000000A705}"
 reg add %AS% /ve /t REG_SZ /d WhatOS /f >nul
+reg add HKLM\OS\Classes\whatos /ve /t REG_SZ /d "URL:WhatOS" /f >nul
+reg add HKLM\OS\Classes\whatos /v "URL Protocol" /t REG_SZ /d "" /f >nul
+reg add HKLM\OS\Classes\whatos\shell\open\command /ve /t REG_SZ /d "\"C:\Program Files\WhatOS\WhatOS.exe\" \"%%1\"" /f >nul
+set UN=HKLM\OS\Microsoft\Windows\CurrentVersion\Uninstall\WhatOS
+reg add %UN% /v DisplayName /t REG_SZ /d WhatOS /f >nul
+reg add %UN% /v Publisher /t REG_SZ /d WhatOS /f >nul
+reg add %UN% /v DisplayIcon /t REG_SZ /d "C:\Program Files\WhatOS\WhatOS.exe" /f >nul
+reg add %UN% /v UninstallString /t REG_SZ /d "\"C:\Program Files\WhatOS\WhatOS.exe\" --uninstall" /f >nul
+reg add %UN% /v NoModify /t REG_DWORD /d 1 /f >nul
+reg add %UN% /v NoRepair /t REG_DWORD /d 1 /f >nul
 reg add %AS% /v Version /t REG_SZ /d 1,0 /f >nul
 reg add %AS% /v IsInstalled /t REG_DWORD /d 1 /f >nul
 reg add %AS% /v StubPath /t REG_SZ /d "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File C:\Windows\WhatOS\whatos-prep.ps1" /f >nul

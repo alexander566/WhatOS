@@ -16,9 +16,13 @@ namespace WhatOS
     {
         public static readonly string Work = Path.Combine(Path.GetTempPath(), "WhatOS");
 
+        public static int StartTab;
+
         [STAThread]
-        static void Main()
+        static void Main(string[] args)
         {
+            var a = string.Join(" ", args).ToLowerInvariant();
+            StartTab = a.Contains("updates") ? 1 : a.Contains("--uninstall") ? 3 : 0;
             Directory.CreateDirectory(Work);
             AppDomain.CurrentDomain.AssemblyResolve += (s, e) =>
             {
@@ -143,6 +147,7 @@ namespace WhatOS
                 r.CopyTo(m);
                 html = html.Replace("LOGO_PNG", "data:image/png;base64," + Convert.ToBase64String(m.ToArray()));
             }
+            html = html.Replace("const M={tab:0,", "const M={tab:" + Program.StartTab + ",");
             c.NavigateToString(html);
         }
 
@@ -166,6 +171,17 @@ namespace WhatOS
                     case "prepare": Prepare(m["picks"] as Dictionary<string, object>); break;
                     case "restart": RunPs("finish.ps1", "-Action restart", false); break;
                     case "cancel": RunPs("finish.ps1", "-Action cancel", true); break;
+                    case "manage": { var a = m["action"] as string; var id = m.ContainsKey("id") ? m["id"] as string : ""; Task.Run(() => { var o = Manage("-Action " + a + " -Id \"" + id + "\""); Send(o != null ? (object)new { type = "manage", data = o } : new { type = "manage", err = "WhatOS could not change this setting." }); }); break; }
+                    case "updcheck": Task.Run(() => { try { var rf = Path.Combine(Program.Work, "remote.json"); using (var w = new System.Net.WebClient()) { System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12; w.DownloadFile(ManifestUrl, rf); } var o = Manage("-Action diff -Manifest \"" + rf + "\""); Send(new { type = "diff", data = o }); } catch (Exception ex) { Send(new { type = "diff", err = "Could not check for updates: " + ex.Message }); } }); break;
+                    case "updapply": Task.Run(() => { var o = Manage("-Action update -Manifest \"" + Path.Combine(Program.Work, "remote.json") + "\""); Send(new { type = "updated", data = o }); }); break;
+                    case "uninstall": Task.Run(() => { Manage("-Action restore"); Ps(@"
+Unregister-ScheduledTask -TaskName WhatOSUpdateCheck -Confirm:$false -EA 0
+Remove-Item 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\WhatOS' -Recurse -Force -EA 0
+Remove-Item 'HKLM:\SOFTWARE\Classes\whatos' -Recurse -Force -EA 0
+Remove-Item ""$env:ProgramData\Microsoft\Windows\Start Menu\Programs\WhatOS.lnk"" -Force -EA 0
+Remove-Item 'C:\ProgramData\WhatOS', 'C:\Windows\WhatOS' -Recurse -Force -EA 0
+Start-Process cmd -ArgumentList '/c ping -n 4 127.0.0.1 >nul & rd /s /q ""C:\Program Files\WhatOS""' -WindowStyle Hidden
+"); Send(new { type = "uninstalled" }); }); break;
                     case "close": Close(); break;
                     case "min": WindowState = FormWindowState.Minimized; break;
                     case "drag": ReleaseCapture(); SendMessage(Handle, 0xA1, (IntPtr)2, IntPtr.Zero); break;
@@ -175,6 +191,28 @@ namespace WhatOS
             {
                 Send(new { type = "error", msg = ex.Message });
             }
+        }
+
+        const string ManifestUrl = "https://raw.githubusercontent.com/alexander566/WhatOS/main/app/payload/tweaks.json";
+
+        object Manage(string args)
+        {
+            var pay = Path.Combine(Program.Work, "payload");
+            Directory.CreateDirectory(pay);
+            Program.Extract("payload.manage.ps1", Path.Combine(pay, "manage.ps1"));
+            Program.Extract("payload.tweaks.json", Path.Combine(pay, "tweaks.json"));
+            var p = Process.Start(new ProcessStartInfo("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -File \"" + Path.Combine(pay, "manage.ps1") + "\" " + args)
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                StandardOutputEncoding = Encoding.UTF8
+            });
+            var o = p.StandardOutput.ReadToEnd();
+            p.WaitForExit();
+            File.AppendAllText(Path.Combine(Program.Work, "manage.log"), DateTime.Now + " " + args + "\r\n" + o + "\r\n");
+            var last = o.Split('\n').Select(x => x.Trim()).LastOrDefault(x => x.StartsWith("{"));
+            return last == null ? null : json.DeserializeObject(last);
         }
 
         static string Ps(string script)
@@ -212,6 +250,7 @@ $parts=@(Get-Partition -DiskNumber $d.Number | ?{ $_.Type -in 'Basic','IFS' } | 
  disk=$d.FriendlyName; diskSize=$d.Size
  cSize=$c.Size; cFree=$v.SizeRemaining; cMin=$max
  bitlocker=$bl; parts=$parts; usbs=$usbs
+ whatos=((Test-Path 'C:\ProgramData\WhatOS\state.json') -or (Test-Path 'C:\Windows\WhatOS\tweaks.json'))
 } | ConvertTo-Json -Compress -Depth 4");
             return json.DeserializeObject(o);
         }
@@ -232,6 +271,7 @@ $parts=@(Get-Partition -DiskNumber $d.Number | ?{ $_.Type -in 'Basic','IFS' } | 
             Directory.CreateDirectory(pay);
             foreach (var n in Assembly.GetExecutingAssembly().GetManifestResourceNames().Where(n => n.StartsWith("payload.")))
                 Program.Extract(n, Path.Combine(pay, n.Substring(8)));
+            try { File.Copy(Application.ExecutablePath, Path.Combine(pay, "WhatOS.exe"), true); } catch { }
             var over = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "pe.xml");
             if (File.Exists(over)) File.Copy(over, Path.Combine(pay, "pe.xml"), true);
             File.WriteAllText(Path.Combine(pay, "picks.json"), json.Serialize(picks), new UTF8Encoding(false));
