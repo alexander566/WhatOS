@@ -181,12 +181,17 @@ static int write_plan(const wchar_t *path)
 {
     FILE *f = _wfopen(path, L"w");
     if (!f) return 0;
+    g_sl = L'S';
     for (int i = 0; i < g_ndk; i++) {
         Disk *k = &g_dk[i];
         int tgt = i == g_tdisk, dels = 0;
         for (int j = 0; j < k->np; j++) dels += k->p[j].del;
         if (!tgt && !dels) continue;
         fprintf(f, "select disk %d\n", k->num);
+        if (tgt && g_ttype == 2 && g_bios) {
+            fprintf(f, "clean\nconvert mbr\ncreate partition primary size=100\nformat quick fs=ntfs label=System\nactive\nassign letter=S noerr\ncreate partition primary\nformat quick fs=ntfs label=Windows\nassign letter=T noerr\n");
+            continue;
+        }
         if (tgt && g_ttype == 2) {
             fprintf(f, "clean\nconvert gpt\ncreate partition efi size=300\nformat quick fs=fat32 label=System\nassign letter=S noerr\ncreate partition msr size=16\ncreate partition primary\nformat quick fs=ntfs label=Windows\nassign letter=T noerr\n");
             continue;
@@ -194,7 +199,7 @@ static int write_plan(const wchar_t *path)
         ULONGLONG off = 0, len = 0;
         if (tgt && g_ttype == 0) { off = k->p[g_tidx].off; len = k->p[g_tidx].len; k->p[g_tidx].del = 1; }
         if (tgt && g_ttype == 1) { Gap gp[40]; gaps(k, gp); off = gp[g_tidx].off; len = gp[g_tidx].len; }
-        if (tgt && k->efi) fprintf(f, "select partition %d\nassign letter=S noerr\n", k->efi);
+        if (tgt && k->efi && !g_bios) fprintf(f, "select partition %d\nassign letter=S noerr\n", k->efi);
         int ord[32], no = 0;
         for (int j = 0; j < k->np; j++) if (k->p[j].del) ord[no++] = k->p[j].num;
         for (int a = 0; a < no; a++) for (int b = a + 1; b < no; b++) if (ord[b] > ord[a]) { int x = ord[a]; ord[a] = ord[b]; ord[b] = x; }
@@ -202,6 +207,11 @@ static int write_plan(const wchar_t *path)
         if (tgt && g_ttype == 0) k->p[g_tidx].del = 0;
         if (!tgt) continue;
         ULONGLONG st = (off + 1048575) / 1048576 * 1048576, mb = (off + len - st) / 1048576;
+        if (g_bios) {
+            fprintf(f, "create partition primary offset=%llu size=%llu\nformat quick fs=ntfs label=Windows\nactive\nassign letter=T noerr\n", st / 1024, mb - 1);
+            g_sl = L'T';
+            continue;
+        }
         if (!k->efi) {
             fprintf(f, "create partition efi size=300 offset=%llu\nformat quick fs=fat32 label=System\nassign letter=S noerr\n", st / 1024);
             st += 300ULL * 1048576;

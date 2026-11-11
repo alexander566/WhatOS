@@ -51,7 +51,7 @@ const need=()=>S.win==="whatos"?6.3e9:S.iso?S.iso.size+1073741824:9e9;
 function canNext(){
   const p=PAGES[S.p];
   if(p==="win")return S.win==="whatos"||(S.win==="iso"&&!!S.iso); if(p==="edition")return !!S.ed; if(p==="method")return !!S.method;
-  if(p==="target"){if(S.method==="usb")return S.usb!=null&&!!usbOf(S.usb)&&usbOf(S.usb).size>need()+2.7e9;return !!S.info&&S.info.uefi&&S.info.gpt&&(S.info.cSize-S.info.cMin)>need()+2147483648}
+  if(p==="target"){if(S.method==="usb")return S.usb!=null&&!!usbOf(S.usb)&&usbOf(S.usb).size>need()+2.7e9;return !!S.info&&S.info.uefi===S.info.gpt&&(S.info.cSize-S.info.cMin)>need()+2147483648}
   if(p==="defender")return !!(S.def&&S.xbox&&S.store);
   if(p.startsWith("app")){const a=APPS[+p.slice(3)];return !a.req||S.apps[a.k].size>0}
   if(p==="confirm")return S.ok; return true;
@@ -73,7 +73,7 @@ function render(){
   else if(p==="target"){const I=S.info;
     if(!I){P.innerHTML=`<h1>Checking this PC…</h1>`;}
     else{const n=need(),cUsed=I.cSize-I.cFree,free=I.cFree-n,tot=I.cSize;
-      const bad=!I.uefi?"This PC starts in legacy BIOS mode. WhatOS needs UEFI for now.":!I.gpt?"The Windows disk is not GPT. WhatOS needs a GPT disk for now.":(I.cSize-I.cMin)<n+2147483648?"Not enough free space on C:. WhatOS needs "+GBf(n+2147483648)+" free.":"";
+      const bad=I.uefi!==I.gpt?(I.uefi?"The Windows disk is not GPT. Use a USB stick instead.":"This PC starts in legacy BIOS mode but the Windows disk is not MBR. Use a USB stick instead."):(I.cSize-I.cMin)<n+2147483648?"Not enough free space on C:. WhatOS needs "+GBf(n+2147483648)+" free.":"";
       P.innerHTML=`<h1>We'll borrow ${GBf(n)}</h1><p class="sub">Works exactly like a USB. Given back after install.</p>
        <div class="drive">${svgDisk}<span>${esc(I.disk)} · ${GBf(I.diskSize)}</span></div>
        <div class="bar"><span style="flex:${cUsed/tot*100};background:#2A3A52">C: ${GBf(cUsed)} used</span><span style="flex:${n/tot*100};background:#7A4CE0;color:#fff;min-width:80px">Installer ${GBf(n)}</span><span style="flex:${Math.max(free,0)/tot*100};background:#1D2633;color:var(--muted)">free</span></div>

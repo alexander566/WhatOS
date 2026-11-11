@@ -43,7 +43,7 @@ function Get-File($url, $dst, $size, $step) {
                     if ($pct -ne $last) {
                         $last = $pct; $sec = ((Get-Date) - $t0).TotalSeconds
                         $mbs = if ($sec -gt 1) { ($have - $b0) / 1MB / $sec } else { 0 }
-                        P $step $pct ("Downloading Windows · {0:N1} of {1:N1} GB · {2:N0} MB/s" -f ($have / 1GB), ($size / 1GB), $mbs)
+                        P $step $pct ("Downloading Windows - {0:N1} of {1:N1} GB - {2:N0} MB/s" -f ($have / 1GB), ($size / 1GB), $mbs)
                     }
                 }
             } finally { $out.Close(); $in.Close(); $rs.Close() }
@@ -58,14 +58,26 @@ if ($usb) {
     if (-not $ud -or $ud.BusType -ne 'USB') { Fail 'The USB stick was not found. Plug it in and try again.' }
     if ($ud.IsBoot -or $ud.IsSystem) { Fail 'That USB drive runs this Windows. Pick another one.' }
 } else {
-    if ($env:firmware_type -ne 'UEFI') { Fail 'This PC starts in legacy BIOS mode. WhatOS needs UEFI. Use a USB stick instead.' }
+    $bios = $env:firmware_type -ne 'UEFI'
     $c = Get-Partition -DriveLetter C
     $disk = Get-Disk -Number $c.DiskNumber
-    if ($disk.PartitionStyle -ne 'GPT') { Fail 'The Windows disk is not GPT. Use a USB stick instead.' }
-    $efi = Get-Partition -DiskNumber $disk.Number | ? { $_.GptType -eq '{c12a7328-f81f-11d2-ba4b-00a0c93ec93b}' } | select -First 1
-    if (-not $efi) { Fail 'No EFI system partition found on the Windows disk.' }
+    if ($bios) {
+        if ($disk.PartitionStyle -ne 'MBR') { Fail 'This PC starts in legacy BIOS mode but the Windows disk is not MBR. Use a USB stick instead.' }
+        $efi = Get-Partition -DiskNumber $disk.Number | ? { $_.IsActive } | select -First 1
+        if (-not $efi) { Fail 'No active system partition found on the Windows disk.' }
+        if ($efi.DiskNumber -ne $c.DiskNumber) { Fail 'Windows boots from another disk. Use a USB stick instead.' }
+        if (@(Get-Partition -DiskNumber $disk.Number).Count -ge 4) { Fail 'The Windows disk already has 4 partitions. Use a USB stick instead.' }
+    } else {
+        if ($disk.PartitionStyle -ne 'GPT') { Fail 'The Windows disk is not GPT. Use a USB stick instead.' }
+        $efi = Get-Partition -DiskNumber $disk.Number | ? { $_.GptType -eq '{c12a7328-f81f-11d2-ba4b-00a0c93ec93b}' } | select -First 1
+        if (-not $efi) { Fail 'No EFI system partition found on the Windows disk.' }
+    }
     $old = Get-Volume | ? { $_.FileSystemLabel -eq 'WhatOS Installer' }
-    if ($old) { Fail 'A WhatOS installer already exists on this PC. Use Cancel and remove installer first.' }
+    if ($old) {
+        L 'old installer found, removing it'
+        & powershell -NoProfile -ExecutionPolicy Bypass -File "$Payload\finish.ps1" -Action cancel | Out-Null
+        if (Get-Volume | ? { $_.FileSystemLabel -eq 'WhatOS Installer' }) { Fail 'An old WhatOS installer is on this PC and could not be removed.' }
+    }
 }
 if ($dl) {
     P 0 30 'Finding the latest Windows 11'
@@ -173,6 +185,8 @@ if ($usb) {
     foreach ($x in 'bootmgr', 'bootmgr.efi') { if (Test-Path "$W\$x") { Copy-Item "$W\$x" "$B\" -Force } }
     New-Item -ItemType Directory "$B\sources" -Force | Out-Null
     Move-Item $BW "$B\sources\boot.wim" -Force
+    $bs = "$B\boot\bootsect.exe"
+    if (Test-Path $bs) { & $bs /nt60 $B /force /mbr | Out-Null; L "bootsect $LASTEXITCODE" } else { L 'no bootsect.exe: USB boots on UEFI only' }
     $BW = "$B\sources\boot.wim"
     Set-Content "$B\whatos-boot.txt" 'WhatOS USB boot part. Windows files are on the WhatOS USB part.'
 }
@@ -182,7 +196,11 @@ if (-not $whatos -or -not $ed -or $ed -eq 'auto') { $ed = if ((Get-CimInstance W
 $want = if ($ed -eq 'pro') { ' Pro(fessional)?$' } else { ' Home$' }
 $pick = $imgs | ? { $_.ImageName -match $want -and $_.ImageName -notmatch ' N$| N |Single|Education' } | select -First 1
 if (-not $pick) { $pick = $imgs | ? { $_.ImageName -match 'Windows' } | select -Last 1 }
-L "image index $($pick.ImageIndex) $($pick.ImageName)"
+if (-not $pick) { Fail 'No Windows edition found in this ISO.' }
+$info = Get-WindowsImage -ImagePath $img -Index $pick.ImageIndex
+if ($info.Architecture -ne 9) { Fail "This ISO is not 64-bit (x64) Windows ($($info.ImageName))." }
+if ($whatos -and ($info.InstallationType -ne 'Client' -or $info.Build -lt 22000)) { Fail "WhatOS needs a Windows 11 ISO ($($info.ImageName), build $($info.Build)). To install this ISO as-is, turn WhatOS off." }
+L "image index $($pick.ImageIndex) $($pick.ImageName) build $($info.Build)"
 
 P $SA 0 'Adding WhatOS'
 $H = "$W\whatos"
@@ -215,7 +233,7 @@ if ($picks.test -and $whatos) {
 }
 $applied = if ($whatos) { @($pick.ImageName; $(if ($picks.def -eq 'remove') { 'Defender removed' } else { 'Defender kept' }); 'WhatOS power plan') -join ' · ' } else { "$($pick.ImageName) · as-is" }
 if ($usb) { $ini = @('[whatpe]', "name=$($pick.ImageName)", 'pick=1', 'usb=1', "index=$($pick.ImageIndex)", 'fw=UEFI', "whatos=$(if($whatos){1}else{0})", "applied=$applied") }
-else { $ini = @('[whatpe]', "name=$($pick.ImageName)", "serial=$serial", "part=$($c.PartitionNumber)", "efi=$($efi.PartitionNumber)", "index=$($pick.ImageIndex)", 'fw=UEFI', "whatos=$(if($whatos){1}else{0})", "applied=$applied") }
+else { $ini = @('[whatpe]', "name=$($pick.ImageName)", "serial=$serial", "part=$($c.PartitionNumber)", "efi=$($efi.PartitionNumber)", "index=$($pick.ImageIndex)", "fw=$(if ($bios) { 'BIOS' } else { 'UEFI' })", "whatos=$(if($whatos){1}else{0})", "applied=$applied") }
 $ini | Set-Content "$H\whatpe.ini" -Encoding UTF8
 P $SA 20 'Adding WhatOS'
 $script:m = $m = Join-Path $env:TEMP 'WhatOS\mnt'
@@ -254,7 +272,7 @@ $o = bcdedit /create /d 'WhatOS Installer' /application osloader
 $g = [regex]::Match(($o -join ' '), '\{[0-9a-fA-F-]+\}').Value
 if (-not $g) { Fail 'Could not add the boot entry.' }
 foreach ($k in 'device', 'osdevice') { bcdedit /set $g $k "ramdisk=[$W]\sources\boot.wim,{ramdiskoptions}" | Out-Null }
-bcdedit /set $g path \windows\system32\boot\winload.efi | Out-Null
+bcdedit /set $g path "\windows\system32\boot\winload.$(if ($bios) { 'exe' } else { 'efi' })" | Out-Null
 bcdedit /set $g systemroot \windows | Out-Null
 bcdedit /set $g winpe yes | Out-Null
 bcdedit /set $g detecthal yes | Out-Null

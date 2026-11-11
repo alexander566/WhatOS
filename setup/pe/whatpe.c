@@ -36,6 +36,8 @@ static double g_frac;
 static DWORD g_t0, g_tick;
 static wchar_t g_H = 0, g_ini[MAX_PATH], g_name[128] = L"Windows 11", g_diskinfo[160], g_applied[256] = L"", g_errcmd[512], g_tail[6][160];
 static int g_tailn;
+static int g_bios;
+static wchar_t g_sl = L'S';
 static int g_pick, g_usb, g_planned, g_whatos = 1, g_disk = 0, g_part = 3, g_efi = 1, g_index = 1;
 static wchar_t g_fw[16] = L"UEFI", g_serial[64] = L"";
 static GpFontFamily *g_fam[3];
@@ -341,12 +343,8 @@ static DWORD WINAPI worker(LPVOID a)
     }
     {
         FIRMWARE_TYPE ft = FirmwareTypeUnknown;
-        if (GetFirmwareType(&ft) && ft == FirmwareTypeBios) {
-            tail_add("This PC started in legacy BIOS mode.", 36);
-            tail_add("Turn on UEFI in the firmware settings (often F2 or Del at power on), then start from the stick again.", 101);
-            wcscpy(g_errcmd, L"firmware check");
-            return fail(0);
-        }
+        g_bios = GetFirmwareType(&ft) && ft == FirmwareTypeBios;
+        if (g_bios) wcscpy(g_fw, L"BIOS");
     }
     if (g_pick && !g_planned) {
         EnterCriticalSection(&g_cs);
@@ -376,7 +374,10 @@ static DWORD WINAPI worker(LPVOID a)
         plog(L"installer %lc: disk %d part %d efi %d index %d fw %ls\r\n", g_H, g_disk, g_part, g_efi, g_index, g_fw);
         FILE *f = _wfopen(L"X:\\f.txt", L"w");
         if (!f) return fail(0);
-        fprintf(f, "select disk %d\nselect partition %d\nformat quick fs=ntfs label=Windows\nassign letter=T noerr\nselect partition %d\nassign letter=S noerr\n", g_disk, g_part, g_efi);
+        if (g_bios && g_efi == g_part) {
+            fprintf(f, "select disk %d\nselect partition %d\nformat quick fs=ntfs label=Windows\nactive\nassign letter=T noerr\n", g_disk, g_part);
+            g_sl = L'T';
+        } else fprintf(f, "select disk %d\nselect partition %d\nformat quick fs=ntfs label=Windows\nassign letter=T noerr\nselect partition %d\nassign letter=S noerr\n", g_disk, g_part, g_efi);
         fclose(f);
     }
     {
@@ -388,7 +389,7 @@ static DWORD WINAPI worker(LPVOID a)
     }
     set_progress(0, 0.3);
     if (run(L"diskpart /s X:\\f.txt", 0)) return fail(0);
-    if (GetFileAttributesW(L"T:\\") == INVALID_FILE_ATTRIBUTES || GetFileAttributesW(L"S:\\") == INVALID_FILE_ATTRIBUTES) { tail_add("T: or S: missing after diskpart", 31); return fail(0); }
+    if (GetFileAttributesW(L"T:\\") == INVALID_FILE_ATTRIBUTES || !(GetLogicalDrives() & (1u << (g_sl - L'A')))) { tail_add("T: or S: missing after diskpart", 31); return fail(0); }
     set_progress(1, 0);
     wchar_t img[64];
     swprintf(img, 64, L"%lc:\\sources\\install.wim", g_H);
@@ -418,13 +419,14 @@ static DWORD WINAPI worker(LPVOID a)
     fclose(sc);
     plog(L"SetupComplete.cmd runs whatos-post.ps1\r\n");
     set_progress(3, 0);
-    swprintf(c, 1024, L"bcdboot T:\\Windows /s S: /f %ls", g_fw);
+    swprintf(c, 1024, L"bcdboot T:\\Windows /s %lc: /f %ls", g_sl, g_fw);
     if (run(c, 3)) return fail(3);
     set_progress(3, 0.6);
-    run(L"bcdedit /store S:\\EFI\\Microsoft\\Boot\\BCD /set {default} disabledynamictick yes", 3);
+    swprintf(c, 1024, L"bcdedit /store %lc:\\%ls\\BCD /set {default} disabledynamictick yes", g_sl, g_bios ? L"Boot" : L"EFI\\Microsoft\\Boot");
+    run(c, 3);
     set_progress(4, 0.5);
     flush_vol('T');
-    flush_vol('S');
+    if (g_sl != L'T') flush_vol(g_sl);
     plog(L"\r\nDONE\r\n");
     FlushFileBuffers(g_log);
     swprintf(c, 1024, L"%lc:\\whatos\\whatpe.log", g_H);

@@ -32,10 +32,9 @@ foreach ($l in $direct) {
     } catch { W "$name direct failed: $($_.Exception.Message)" }
 }
 for ($k = 0; $k -lt 120 -and -not $wg -and $list.Count; $k++) {
-    $c = Get-Command winget.exe -EA 0
-    if ($c) { $wg = $c.Source; break }
-    $p = Get-ChildItem "$env:ProgramFiles\WindowsApps\Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe\winget.exe" -EA 0 | sort FullName | select -Last 1
-    if ($p) { $wg = $p.FullName; break }
+    $c = @((Get-Command winget.exe -EA 0).Source) + @(Get-ChildItem "$env:ProgramFiles\WindowsApps\Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe\winget.exe" -EA 0 | sort FullName -Descending | % FullName)
+    foreach ($x in $c) { if ($x) { & $x --version 2>&1 | Out-Null; if ($LASTEXITCODE -eq 0) { $wg = $x; break } } }
+    if ($wg) { break }
     if ($k -eq 0 -or $k % 12 -eq 0) { try { Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe -EA Stop } catch { W "register: $($_.Exception.Message)" } }
     if ($k -eq 12) {
         try {

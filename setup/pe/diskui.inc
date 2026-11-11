@@ -60,7 +60,7 @@ static void paint_disk(GpGraphics *g, int W, int H)
     for (int i = 0; i < g_ndk; i++) {
         Disk *k = &g_dk[i];
         if (g_usb && k->inst) continue;
-        swprintf(b, 256, L"%ls \x00b7 %.0f GB%ls", *k->model ? k->model : L"Disk", GB(k->size), k->gpt ? L"" : L" \x00b7 MBR: whole disk only");
+        swprintf(b, 256, L"%ls \x00b7 %.0f GB%ls", *k->model ? k->model : L"Disk", GB(k->size), k->gpt == !g_bios ? L"" : g_bios ? L" \x00b7 GPT: whole disk only" : L" \x00b7 MBR: whole disk only");
         text(g, b, F_SMALL, C_MUTED, cx, y + rr * 0.25f, cw, 0);
         y += rh;
         for (int j = 0; j < k->np; j++) {
@@ -72,7 +72,7 @@ static void paint_disk(GpGraphics *g, int W, int H)
                 row(g, cx, y, cw, rr, 0, 1, 0xFF7A4CE0, tl, L"WhatOS installer \x00b7 in use", rt, 0, 0);
             } else {
                 swprintf(nm, 96, L"%ls%ls%ls", *t->label ? t->label : L"Drive", *t->fs ? L" \x00b7 " : L"", t->fs);
-                int ok = k->gpt && t->len >= MINWIN;
+                int ok = k->gpt == !g_bios && t->len >= MINWIN;
                 int sel = g_tdisk == i && g_ttype == 0 && g_tidx == j;
                 row(g, cx, y, pw, rr, sel, !ok, 0xFF2A3A52, tl, nm, rt, ok ? 100 : 0, i * 100 + j);
                 sidebtn(g, cx + pw + 8 * S, y, dw, rr, L"Delete", C_DANGER, 101, i * 100 + j);
@@ -83,7 +83,7 @@ static void paint_disk(GpGraphics *g, int W, int H)
         int ng = gaps(k, gp);
         for (int j = 0; j < ng; j++) {
             swprintf(b, 32, L"%.0f GB", GB(gp[j].len));
-            int ok = k->gpt && gp[j].len >= MINWIN;
+            int ok = k->gpt == !g_bios && gp[j].len >= MINWIN;
             int sel = g_tdisk == i && g_ttype == 1 && g_tidx == j;
             row(g, cx, y, gp[j].hasdel ? pw : cw, rr, sel, !ok, 0xFF1D2633, L"+", L"Free space", b, ok ? 102 : 0, i * 100 + j);
             if (gp[j].hasdel) sidebtn(g, cx + pw + 8 * S, y, dw, rr, L"Undo", C_MUTED, 103, i);
