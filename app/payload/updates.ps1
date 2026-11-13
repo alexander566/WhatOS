@@ -3,6 +3,15 @@ New-Item -ItemType Directory $st -Force | Out-Null
 $log="$st\updates.log"
 function St($m){ Set-Content "$st\wu.status" $m; $m | Add-Content $log }
 "start $(whoami) $(Get-Date)" | Add-Content $log
+if (Test-Path "$st\wu.all") {
+ St 'Cleaning up after updates'
+ if ((Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\WinDefend -EA 0).Start -eq 4 -and (Test-Path HKLM:\SYSTEM\CurrentControlSet\Services\MDCoreSvc)) { Stop-Service MDCoreSvc -Force -EA 0; Set-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\MDCoreSvc Start 4; "MDCoreSvc disabled" | Add-Content $log }
+ $r = dism /Online /Cleanup-Image /StartComponentCleanup /ResetBase /Quiet 2>&1; "cleanup exit $LASTEXITCODE" | Add-Content $log
+ Set-Content "$st\cleanup.done" (Get-Date)
+ Unregister-ScheduledTask -TaskName WhatOSUpdate -Confirm:$false -EA 0
+ "end $(Get-Date)" | Add-Content $log
+ exit
+}
 St 'Waiting for the internet'
 for($i=0;$i -lt 86400;$i++){ try { $c=New-Object Net.Sockets.TcpClient; $c.Connect('1.1.1.1',443); $c.Close(); break } catch { Start-Sleep 2 } }
 try {
@@ -32,5 +41,4 @@ try {
 } catch { "wu error $($_.Exception.Message)" | Add-Content $log }
 Set-Content "$st\wu.done" (Get-Date)
 Set-Content "$st\wu.all" (Get-Date)
-Unregister-ScheduledTask -TaskName WhatOSUpdate -Confirm:$false -EA 0
 "end $(Get-Date)" | Add-Content $log
