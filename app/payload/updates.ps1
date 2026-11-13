@@ -7,6 +7,7 @@ St 'Waiting for the internet'
 for($i=0;$i -lt 86400;$i++){ try { $c=New-Object Net.Sockets.TcpClient; $c.Connect('1.1.1.1',443); $c.Close(); break } catch { Start-Sleep 2 } }
 try {
  $us=New-Object -ComObject Microsoft.Update.Session; $us.ClientApplicationID='WhatOS'
+ $seen=@{}
  foreach($ph in 'Driver','Software'){
  if($ph -eq 'Software'){ Set-Content "$st\wu.done" (Get-Date); if(-not (Test-Path "$st\prep.done")){ "wu software after restart" | Add-Content $log; exit } }
  for($round=1;$round -le 3;$round++){
@@ -14,7 +15,7 @@ try {
   $sr=$us.CreateUpdateSearcher(); $sr.Online=$true
   $res=$sr.Search("IsInstalled=0 and IsHidden=0 and BrowseOnly=0 and Type='$ph'")
   $col=New-Object -ComObject Microsoft.Update.UpdateColl
-  foreach($u in $res.Updates){ if($u.Title -notmatch 'Preview|Defender Antivirus|Security Intelligence' -or $u.Type -eq 2){ if(-not $u.EulaAccepted){ $u.AcceptEula() }; [void]$col.Add($u) } }
+  foreach($u in $res.Updates){ if($seen[$u.Identity.UpdateID]){ continue }; $seen[$u.Identity.UpdateID]=1; if($u.Title -notmatch 'Preview|Defender Antivirus|Security Intelligence' -or $u.Type -eq 2){ if(-not $u.EulaAccepted){ $u.AcceptEula() }; [void]$col.Add($u) } }
   "wu $ph round $round found $($col.Count)" | Add-Content $log
   if($col.Count -eq 0){ break }
   for($i=0;$i -lt $col.Count;$i++){
