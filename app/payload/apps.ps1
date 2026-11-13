@@ -31,7 +31,10 @@ foreach ($l in $direct) {
         (New-Object Net.WebClient).DownloadFile($url, $f)
         $p = Start-Process $f -ArgumentList $args2 -PassThru
         $null = $p.Handle
-        if (-not $p.WaitForExit(420000)) { $p | Stop-Process -Force -EA 0; Get-Process | ? { $_.Path -like "$env:TEMP\whatos-*" } | Stop-Process -Force -EA 0; W "$name timed out" } else { W "$name (direct) exit $($p.ExitCode)" }
+        $done = @{ 'Discord' = "$env:LOCALAPPDATA\Discord\app-*\Discord.exe" }[$name]
+        for ($w = 0; $w -lt 84 -and -not $p.HasExited; $w++) { if ($done -and (Test-Path $done) -and (Get-Process ($name) -EA 0)) { break }; Start-Sleep 5 }
+        if (-not $p.HasExited -and $done -and (Test-Path $done)) { W "$name (direct) installed, app running" }
+        elseif (-not $p.WaitForExit(1000)) { $p | Stop-Process -Force -EA 0; Get-Process | ? { $_.Path -like "$env:TEMP\whatos-*" } | Stop-Process -Force -EA 0; W "$name timed out" } else { W "$name (direct) exit $($p.ExitCode)" }
     } catch { W "$name direct failed: $($_.Exception.Message)" }
 }
 for ($k = 0; $k -lt 120 -and -not $wg -and $list.Count; $k++) {
