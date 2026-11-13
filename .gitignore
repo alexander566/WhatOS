@@ -5,3 +5,6 @@ app/ui/
 app/payload/whatpe.exe
 setup/pe/whatpe.exe
 setup/pe/whatpe.res
+app/payload/WhatOSLink.exe
+setup/link/WhatOSLink.exe
+setup/link/WhatOSLink.res

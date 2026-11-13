@@ -49,6 +49,7 @@ copy /y %H%:\whatos\update-check.ps1 %T%:\Windows\WhatOS\ >nul
 copy /y %H%:\whatos\tweaks.json %T%:\Windows\WhatOS\ >nul
 if exist %H%:\whatos\WhatOS.exe mkdir "%T%:\Program Files\WhatOS" 2>nul
 if exist %H%:\whatos\WhatOS.exe copy /y %H%:\whatos\WhatOS.exe "%T%:\Program Files\WhatOS\" >nul
+if exist %H%:\whatos\WhatOSLink.exe copy /y %H%:\whatos\WhatOSLink.exe "%T%:\Program Files\WhatOS\" >nul
 copy /y %H%:\whatos\logo.png %T%:\Windows\WhatOS\ >nul
 if exist %H%:\whatos\report.url copy /y %H%:\whatos\report.url %T%:\Windows\WhatOS\ >nul
 if exist %H%:\whatos\ssh xcopy /e /i /y %H%:\whatos\ssh %T%:\Windows\WhatOS\ssh >nul
@@ -67,7 +68,9 @@ set AS="HKLM\OS\Microsoft\Active Setup\Installed Components\{7A1E5B2C-0A70-4D05-
 reg add %AS% /ve /t REG_SZ /d WhatOS /f >nul
 reg add HKLM\OS\Classes\whatos /ve /t REG_SZ /d "URL:WhatOS" /f >nul
 reg add HKLM\OS\Classes\whatos /v "URL Protocol" /t REG_SZ /d "" /f >nul
-reg add HKLM\OS\Classes\whatos\shell\open\command /ve /t REG_SZ /d "\"C:\Program Files\WhatOS\WhatOS.exe\" \"%%1\"" /f >nul
+reg add HKLM\OS\Classes\whatos\shell\open\command /ve /t REG_SZ /d "\"C:\Program Files\WhatOS\WhatOSLink.exe\" \"%%1\"" /f >nul
+reg add HKLM\OS\Classes\AppUserModelId\WhatOS /v DisplayName /t REG_SZ /d WhatOS /f >nul
+reg add HKLM\OS\Classes\AppUserModelId\WhatOS /v IconUri /t REG_SZ /d C:\Windows\WhatOS\logo.png /f >nul
 set UN=HKLM\OS\Microsoft\Windows\CurrentVersion\Uninstall\WhatOS
 reg add %UN% /v DisplayName /t REG_SZ /d WhatOS /f >nul
 reg add %UN% /v Publisher /t REG_SZ /d WhatOS /f >nul

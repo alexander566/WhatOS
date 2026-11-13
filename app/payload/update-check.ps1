@@ -14,6 +14,6 @@ if ($s -ne 5) { exit }
 [Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null
 $x = New-Object Windows.Data.Xml.Dom.XmlDocument
 $x.LoadXml("<toast activationType=`"protocol`" launch=`"whatos:updates`"><visual><binding template=`"ToastGeneric`"><text>WhatOS update</text><text>New tweaks are ready. Your own changes stay as they are.</text></binding></visual><actions><action content=`"Update`" activationType=`"protocol`" arguments=`"whatos:updates`"/><action content=`"Later`" activationType=`"system`" arguments=`"dismiss`"/></actions></toast>")
-[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe').Show([Windows.UI.Notifications.ToastNotification]::new($x))
+[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('WhatOS').Show([Windows.UI.Notifications.ToastNotification]::new($x))
 Set-Content "$env:LOCALAPPDATA\Temp\whatos-toast.txt" (Get-Date)
 New-Item -ItemType File "$d\toast-$($r.version).txt" -Force | Out-Null

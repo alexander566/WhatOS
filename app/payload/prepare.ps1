@@ -222,7 +222,7 @@ Remove-Item $drv -Recurse -Force -EA 0
 if ($picks.report) { Set-Content "$H\report.url" $picks.report -Encoding ascii }
 if ($whatos) {
     Copy-Item "$Payload\pe.xml", "$Payload\offline.cmd", "$Payload\whatos-prep.ps1", "$Payload\edge.ps1", "$Payload\updates.ps1", "$Payload\update-check.ps1", "$Payload\tweaks.json", "$Payload\logo.png" $H
-    if (Test-Path "$Payload\WhatOS.exe") { Copy-Item "$Payload\WhatOS.exe" $H }
+    if (Test-Path "$Payload\WhatOS.exe") { Copy-Item "$Payload\WhatOS.exe", "$Payload\WhatOSLink.exe" $H }
     $b = { param($v) if ($v -eq 'remove') { '0' } else { '1' } }
     $keep = @()
     $map = @{ 'Photos' = 'Photos'; 'Notepad' = 'Notepad'; 'Snipping Tool' = 'ScreenSketch'; 'Terminal' = 'WindowsTerminal'; 'Calculator' = 'WindowsCalculator'; 'Paint' = 'Paint'; 'Camera' = 'WindowsCamera' }

@@ -177,7 +177,7 @@ namespace WhatOS
                     case "uninstall": Task.Run(() => { Manage("-Action restore"); Ps(@"
 Unregister-ScheduledTask -TaskName WhatOSUpdateCheck -Confirm:$false -EA 0
 Remove-Item 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\WhatOS' -Recurse -Force -EA 0
-Remove-Item 'HKLM:\SOFTWARE\Classes\whatos' -Recurse -Force -EA 0
+Remove-Item 'HKLM:\SOFTWARE\Classes\whatos', 'HKLM:\SOFTWARE\Classes\AppUserModelId\WhatOS' -Recurse -Force -EA 0
 Remove-Item ""$env:ProgramData\Microsoft\Windows\Start Menu\Programs\WhatOS.lnk"" -Force -EA 0
 Remove-Item 'C:\ProgramData\WhatOS', 'C:\Windows\WhatOS' -Recurse -Force -EA 0
 Start-Process cmd -ArgumentList '/c ping -n 4 127.0.0.1 >nul & rd /s /q ""C:\Program Files\WhatOS""' -WindowStyle Hidden

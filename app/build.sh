@@ -12,5 +12,6 @@ for f in ['payload/prepare.ps1','payload/finish.ps1']:
     if not b.startswith(codecs.BOM_UTF8): open(f,'wb').write(codecs.BOM_UTF8+b)
 P
 cp ../setup/pe/whatpe.exe payload/
+cp ../setup/link/WhatOSLink.exe payload/
 ${DOTNET:-$HOME/.dotnet/dotnet} build -c Release -nologo -v q -o out 2>&1 | grep -E "error|Warn|warn|Elapsed" | grep -v "^$" | head -20
 ls -la out/WhatOS.exe
