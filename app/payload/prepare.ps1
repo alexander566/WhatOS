@@ -58,6 +58,7 @@ if ($usb) {
     if (-not $ud -or $ud.BusType -ne 'USB') { Fail 'The USB stick was not found. Plug it in and try again.' }
     if ($ud.IsBoot -or $ud.IsSystem) { Fail 'That USB drive runs this Windows. Pick another one.' }
 } else {
+    if ((Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') -or (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')) { Fail 'Windows is waiting to finish an update. Restart your PC first, then open WhatOS again.' }
     $bios = $env:firmware_type -ne 'UEFI'
     $c = Get-Partition -DriveLetter C
     $disk = Get-Disk -Number $c.DiskNumber
