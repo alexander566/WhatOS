@@ -428,6 +428,17 @@ static DWORD WINAPI worker(LPVOID a)
         while (f && fgets(ln, sizeof ln, f)) logw(ln, (DWORD)strlen(ln));
         if (f) fclose(f);
     }
+    if (!g_usb) {
+        wchar_t id[64] = L"", *b, *e;
+        FILE *f;
+        swprintf(c, 1024, L"%lc:\\whatos\\bcd.id", g_H);
+        if ((f = _wfopen(c, L"r, ccs=UTF-8"))) { fgetws(id, 64, f); fclose(f); }
+        if ((b = wcschr(id, L'{')) && (e = wcschr(b, L'}'))) {
+            e[1] = 0;
+            swprintf(c, 1024, L"bcdedit /default %ls", b);
+            if (run(c, 0)) plog(L"could not make the installer the default boot entry\r\n");
+        }
+    }
     set_progress(0, 0.3);
     if (run(L"diskpart /s X:\\f.txt", 0)) return fail(0);
     if (GetFileAttributesW(L"T:\\") == INVALID_FILE_ATTRIBUTES || !(GetLogicalDrives() & (1u << (g_sl - L'A')))) { tail_add("T: or S: missing after diskpart", 31); return fail(0); }
