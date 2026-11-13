@@ -32,8 +32,8 @@ foreach ($l in $direct) {
         $p = Start-Process $f -ArgumentList $args2 -PassThru
         $null = $p.Handle
         $done = @{ 'Discord' = "$env:LOCALAPPDATA\Discord\app-*\Discord.exe" }[$name]
-        for ($w = 0; $w -lt 84 -and -not $p.HasExited; $w++) { if ($done -and (Test-Path $done) -and (Get-Process ($name) -EA 0)) { break }; Start-Sleep 5 }
-        if (-not $p.HasExited -and $done -and (Test-Path $done)) { W "$name (direct) installed, app running" }
+        for ($w = 0; $w -lt 84 -and -not $p.HasExited; $w++) { if ($done -and (Test-Path $done) -and (Select-String -Path (Join-Path (Split-Path (Split-Path $done)) 'SquirrelSetup.log') -Pattern 'Updating shortcut' -Quiet -EA 0)) { Start-Sleep 5; break }; Start-Sleep 5 }
+        if (-not $p.HasExited -and $done -and (Test-Path $done)) { W "$name (direct) installed after $($w*5) s" }
         elseif (-not $p.WaitForExit(1000)) { $p | Stop-Process -Force -EA 0; Get-Process | ? { $_.Path -like "$env:TEMP\whatos-*" } | Stop-Process -Force -EA 0; W "$name timed out" } else { W "$name (direct) exit $($p.ExitCode)" }
     } catch { W "$name direct failed: $($_.Exception.Message)" }
 }
