@@ -38,6 +38,20 @@ reg add %PS%\8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\54533251-82be-4824-96c1-47b60b
 reg add %PS%\8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\54533251-82be-4824-96c1-47b60b740d00\36687f9e-e3a5-4dbf-b1dc-15eb381c6864 /v ACSettingIndex /t REG_DWORD /d 0 /f >nul
 reg add %PS%\8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\7516b95f-f776-4464-8c53-06167f40cc99\aded5e82-b909-4619-9949-f5d71dac0bcb /v ACSettingIndex /t REG_DWORD /d 0 /f >nul
 reg add %PS%\8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\7516b95f-f776-4464-8c53-06167f40cc99\f1fbfde2-a960-4165-9f88-50667911ce96 /v ACSettingIndex /t REG_DWORD /d 0 /f >nul
+reg add %PS%\8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\7516b95f-f776-4464-8c53-06167f40cc99\3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e /v ACSettingIndex /t REG_DWORD /d 0 /f >nul
+reg add %PS%\8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\7516b95f-f776-4464-8c53-06167f40cc99\3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e /v DCSettingIndex /t REG_DWORD /d 0 /f >nul
+reg add %PS%\8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\7516b95f-f776-4464-8c53-06167f40cc99\17aaa29b-8b43-4b94-aafe-35f64daaf1ee /v ACSettingIndex /t REG_DWORD /d 0 /f >nul
+reg add %PS%\8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\7516b95f-f776-4464-8c53-06167f40cc99\17aaa29b-8b43-4b94-aafe-35f64daaf1ee /v DCSettingIndex /t REG_DWORD /d 0 /f >nul
+reg add %PS%\8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\7516b95f-f776-4464-8c53-06167f40cc99\8ec4b3a5-6868-48c2-be75-4f3044be88a7 /v ACSettingIndex /t REG_DWORD /d 0 /f >nul
+reg add %PS%\8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\7516b95f-f776-4464-8c53-06167f40cc99\8ec4b3a5-6868-48c2-be75-4f3044be88a7 /v DCSettingIndex /t REG_DWORD /d 0 /f >nul
+reg add %PS%\8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\238c9fa8-0aad-41ed-83f4-97be242c8f20\29f6c1db-86da-48c5-9fdb-f2b67b1f44da /v ACSettingIndex /t REG_DWORD /d 0 /f >nul
+reg add %PS%\8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\238c9fa8-0aad-41ed-83f4-97be242c8f20\29f6c1db-86da-48c5-9fdb-f2b67b1f44da /v DCSettingIndex /t REG_DWORD /d 0 /f >nul
+reg add %PS%\8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\238c9fa8-0aad-41ed-83f4-97be242c8f20\9d7815a6-7ee4-497e-8888-515a05f02364 /v ACSettingIndex /t REG_DWORD /d 0 /f >nul
+reg add %PS%\8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\238c9fa8-0aad-41ed-83f4-97be242c8f20\9d7815a6-7ee4-497e-8888-515a05f02364 /v DCSettingIndex /t REG_DWORD /d 0 /f >nul
+reg add %PS%\8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\238c9fa8-0aad-41ed-83f4-97be242c8f20\94ac6d29-73ce-41a6-809f-6363ba21b47e /v ACSettingIndex /t REG_DWORD /d 0 /f >nul
+reg add %PS%\8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\238c9fa8-0aad-41ed-83f4-97be242c8f20\94ac6d29-73ce-41a6-809f-6363ba21b47e /v DCSettingIndex /t REG_DWORD /d 0 /f >nul
+reg add %PS%\8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\0012ee47-9041-4b5d-9b77-535fba8b1442\6738e2c4-e8a5-4a42-b16a-e040e769756e /v ACSettingIndex /t REG_DWORD /d 0 /f >nul
+reg add %PS%\8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c\0012ee47-9041-4b5d-9b77-535fba8b1442\6738e2c4-e8a5-4a42-b16a-e040e769756e /v DCSettingIndex /t REG_DWORD /d 0 /f >nul
 reg unload HKLM\OSYS >nul
 echo system hive done
 
@@ -139,6 +153,7 @@ reg add HKLM\DU\Software\Microsoft\DirectX\UserGpuPreferences /v DirectXUserGlob
 reg add %C%\Themes\Personalize /v AppsUseLightTheme /t REG_DWORD /d 0 /f >nul
 reg add %C%\Themes\Personalize /v SystemUsesLightTheme /t REG_DWORD /d 0 /f >nul
 reg add "HKLM\DU\Control Panel\Desktop" /v WallPaper /t REG_SZ /d C:\Windows\Web\Wallpaper\WhatOS\whatos.jpg /f >nul
+reg add "HKLM\DU\Control Panel\Desktop" /v ScreenSaveActive /t REG_SZ /d 0 /f >nul
 reg add "HKLM\DU\Control Panel\Desktop" /v WallpaperStyle /t REG_SZ /d 10 /f >nul
 reg unload HKLM\DU >nul
 echo default user hive done
