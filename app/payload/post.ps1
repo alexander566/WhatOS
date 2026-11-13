@@ -20,6 +20,7 @@ Get-Partition | Format-Table PartitionNumber,DriveLetter,Size,Type -a | Out-Stri
 bcdedit /enum all | Select-String description | Out-String | Add-Content C:\whatos-post.txt
 if ((Test-Path C:\Windows\WhatOS\updates.ps1) -and -not (Test-Path C:\Users\Public\WhatOS\wu.done) -and -not (Get-ScheduledTask -TaskName WhatOSUpdate -EA 0)) {
     New-Item -ItemType Directory C:\Users\Public\WhatOS -Force | Out-Null
+    icacls C:\Users\Public\WhatOS /grant '*S-1-5-32-545:(OI)(CI)M' | Out-Null
     $a = New-ScheduledTaskAction -Execute powershell.exe -Argument '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File C:\Windows\WhatOS\updates.ps1'
     Register-ScheduledTask -TaskName WhatOSUpdate -Action $a -Trigger (New-ScheduledTaskTrigger -AtLogOn) -User 'NT AUTHORITY\SYSTEM' -RunLevel Highest -Force | Out-Null
     "update task $([bool](Get-ScheduledTask -TaskName WhatOSUpdate -EA 0))" | Add-Content C:\whatos-post.txt

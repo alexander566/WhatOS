@@ -14,7 +14,7 @@ if(Test-Path "$d\logo.png"){ $pb=New-Object Windows.Forms.PictureBox; $pb.Image=
 $cw=560*$k; $cx=($sw-$cw)/2; $y=$sh/2-190*$k
 [void](Lb 'Getting your PC ready' $cx $y (F 30 1) $ink)
 [void](Lb 'This runs once. Your PC restarts when it is done.' ($cx+2) ($y+52*$k) (F 16 0) $mut)
-$steps=@('Connect to the internet','Update Windows and drivers')
+$steps=@('Connect to the internet','Install drivers')
 if(Test-Path "$d\edge.want"){ $steps+='Remove Edge' }
 if(Test-Path "$d\apps.txt"){ $steps+='Install your apps' }
 $steps+='Finish'
@@ -64,7 +64,7 @@ if(-not $n){
  $wl.Visible=$false; $pw.Visible=$false; $cb.Visible=$false
 }
 "net $n" | Add-Content $l
-Step 'Update Windows and drivers'
+Step 'Install drivers'
 for($i=0;$i -lt 7200 -and -not (Test-Path "$st\wu.done");$i++){ $m=Get-Content "$st\wu.status" -EA 0 | select -First 1; if($m){ Say $m }; Pump 1000 }
 "wu done $(Test-Path "$st\wu.done")" | Add-Content $l
 if(Test-Path "$d\edge.want"){
@@ -88,6 +88,7 @@ $o="$st\verify.txt"
 "procs $((Get-Process).Count) svchost $((Get-Process svchost).Count) svcrun $((Get-Service|?{$_.Status -eq 'Running'}).Count) ramMB $([int]((Get-CimInstance Win32_OperatingSystem|%{$_.TotalVisibleMemorySize-$_.FreePhysicalMemory})/1KB))" | Set-Content $o
 "defdir $(Test-Path 'C:\Program Files\Windows Defender') edge $(Test-Path "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe") webview2 $(Test-Path "${env:ProgramFiles(x86)}\Microsoft\EdgeWebView")" | Add-Content $o
 Get-Content "$st\apps-*.log" -EA 0 | Add-Content $o
-if(Test-Path "$d\report.url"){ try { $u=(Get-Content "$d\report.url" | select -First 1).Trim(); $b=(Get-Content $o, $l, "$st\apps-*.log", "$d\edge.log", C:\whatos-post.txt -EA 0 | Out-String); Invoke-WebRequest $u -Method Post -Body $b -UseBasicParsing -TimeoutSec 20 | Out-Null } catch {} }
+if(Test-Path "$d\report.url"){ try { $u=(Get-Content "$d\report.url" | select -First 1).Trim(); $b=(Get-Content $o, $l, "$st\updates.log", "$st\apps-*.log", "$d\edge.log", C:\whatos-post.txt -EA 0 | Out-String); Invoke-WebRequest $u -Method Post -Body $b -UseBasicParsing -TimeoutSec 20 | Out-Null } catch {} }
+Set-Content "$st\prep.done" (Get-Date)
 Pump 2000
 shutdown /r /t 3

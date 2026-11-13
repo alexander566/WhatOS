@@ -15,6 +15,7 @@ if($ok){
   New-Item 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdateDev' -Force | Out-Null
   Set-ItemProperty 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdateDev' AllowUninstall ''
   $j='C:\Windows\System32\IntegratedServicesRegionPolicySet.json'
+  $jb=[IO.File]::ReadAllBytes($j); $ja="$d\region-acl.txt"; icacls $j /save $ja | Out-Null
   takeown /f $j | Out-Null; icacls $j /grant '*S-1-5-18:F' | Out-Null
   $t=Get-Content $j -Raw; $o=$t | ConvertFrom-Json
   foreach($q in $o.policies){ if($q.guid -eq '{1bca278a-5d11-4acf-ad2f-f9ab6d7f93a6}'){ $q.defaultState='enabled' } }
@@ -31,6 +32,8 @@ if($ok){
     if($gn){ Set-ItemProperty $g Name $gn; Set-ItemProperty $g Nation $gi }
     if($null -ne $old){ Set-ItemProperty $dr DeviceRegion $old -Type DWord; L "device region restored $old" }
   } else { L "edge setup.exe not found" }
+  [IO.File]::WriteAllBytes($j,$jb); icacls $j /setowner 'NT SERVICE\TrustedInstaller' | Out-Null; icacls (Split-Path $j) /restore $ja | Out-Null; Remove-Item $ja -EA 0
+  L "region policy restored $([Convert]::ToBase64String((New-Object Security.Cryptography.SHA1Managed).ComputeHash($jb)) -eq [Convert]::ToBase64String((New-Object Security.Cryptography.SHA1Managed).ComputeHash([IO.File]::ReadAllBytes($j)))) owner $((Get-Acl $j).Owner)"
   $pol='HKLM:\SOFTWARE\Policies\Microsoft\EdgeUpdate'; New-Item $pol -Force | Out-Null
   Set-ItemProperty $pol 'Install{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}' 0 -Type DWord
   Set-ItemProperty $pol 'Install{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}' 1 -Type DWord
