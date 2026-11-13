@@ -51,6 +51,9 @@ if exist %H%:\whatos\WhatOS.exe mkdir "%T%:\Program Files\WhatOS" 2>nul
 if exist %H%:\whatos\WhatOS.exe copy /y %H%:\whatos\WhatOS.exe "%T%:\Program Files\WhatOS\" >nul
 if exist %H%:\whatos\WhatOSLink.exe copy /y %H%:\whatos\WhatOSLink.exe "%T%:\Program Files\WhatOS\" >nul
 copy /y %H%:\whatos\logo.png %T%:\Windows\WhatOS\ >nul
+mkdir %T%:\Windows\Web\Wallpaper\WhatOS 2>nul
+copy /y %H%:\whatos\whatos-wallpaper.jpg %T%:\Windows\Web\Wallpaper\WhatOS\whatos.jpg >nul
+copy /y %H%:\whatos\whatos.theme %T%:\Windows\Resources\Themes\whatos.theme >nul
 if exist %H%:\whatos\report.url copy /y %H%:\whatos\report.url %T%:\Windows\WhatOS\ >nul
 if exist %H%:\whatos\ssh xcopy /e /i /y %H%:\whatos\ssh %T%:\Windows\WhatOS\ssh >nul
 if exist %H%:\whatos\apps.txt copy /y %H%:\whatos\apps.ps1 %T%:\Windows\WhatOS\ >nul
@@ -69,6 +72,7 @@ reg add %AS% /ve /t REG_SZ /d WhatOS /f >nul
 reg add HKLM\OS\Classes\whatos /ve /t REG_SZ /d "URL:WhatOS" /f >nul
 reg add HKLM\OS\Classes\whatos /v "URL Protocol" /t REG_SZ /d "" /f >nul
 reg add HKLM\OS\Classes\whatos\shell\open\command /ve /t REG_SZ /d "\"C:\Program Files\WhatOS\WhatOSLink.exe\" \"%%1\"" /f >nul
+reg add HKLM\OS\Microsoft\Windows\CurrentVersion\Themes /v InstallTheme /t REG_EXPAND_SZ /d "%%SystemRoot%%\Resources\Themes\whatos.theme" /f >nul
 reg add HKLM\OS\Classes\AppUserModelId\WhatOS /v DisplayName /t REG_SZ /d WhatOS /f >nul
 reg add HKLM\OS\Classes\AppUserModelId\WhatOS /v IconUri /t REG_SZ /d C:\Windows\WhatOS\logo.png /f >nul
 set UN=HKLM\OS\Microsoft\Windows\CurrentVersion\Uninstall\WhatOS
@@ -132,6 +136,10 @@ reg add "HKLM\DU\Control Panel\Accessibility\StickyKeys" /v Flags /t REG_SZ /d 5
 reg add "HKLM\DU\Control Panel\Accessibility\Keyboard Response" /v Flags /t REG_SZ /d 122 /f >nul
 reg add "HKLM\DU\Control Panel\Accessibility\ToggleKeys" /v Flags /t REG_SZ /d 58 /f >nul
 reg add HKLM\DU\Software\Microsoft\DirectX\UserGpuPreferences /v DirectXUserGlobalSettings /t REG_SZ /d "SwapEffectUpgradeEnable=1;VRROptimizeEnable=1;AutoHDREnable=0;" /f >nul
+reg add %C%\Themes\Personalize /v AppsUseLightTheme /t REG_DWORD /d 0 /f >nul
+reg add %C%\Themes\Personalize /v SystemUsesLightTheme /t REG_DWORD /d 0 /f >nul
+reg add "HKLM\DU\Control Panel\Desktop" /v WallPaper /t REG_SZ /d C:\Windows\Web\Wallpaper\WhatOS\whatos.jpg /f >nul
+reg add "HKLM\DU\Control Panel\Desktop" /v WallpaperStyle /t REG_SZ /d 10 /f >nul
 reg unload HKLM\DU >nul
 echo default user hive done
 

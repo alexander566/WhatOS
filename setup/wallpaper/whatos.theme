@@ -1,0 +1,23 @@
+[Theme]
+DisplayName=WhatOS
+
+[Control Panel\Desktop]
+Wallpaper=%SystemRoot%\Web\Wallpaper\WhatOS\whatos.jpg
+TileWallpaper=0
+WallpaperStyle=10
+Pattern=
+
+[VisualStyles]
+Path=%ResourceDir%\Themes\Aero\Aero.msstyles
+ColorStyle=NormalColor
+Size=NormalSize
+AutoColorization=0
+ColorizationColor=0XC44C8DFF
+SystemMode=Dark
+AppMode=Dark
+
+[MasterThemeSelector]
+MTSM=RJSPBS
+
+[Sounds]
+SchemeName=@%SystemRoot%\System32\mmres.dll,-800

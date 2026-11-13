@@ -221,7 +221,7 @@ Copy-Item $drv "$H\drivers" -Recurse -Force
 Remove-Item $drv -Recurse -Force -EA 0
 if ($picks.report) { Set-Content "$H\report.url" $picks.report -Encoding ascii }
 if ($whatos) {
-    Copy-Item "$Payload\pe.xml", "$Payload\offline.cmd", "$Payload\whatos-prep.ps1", "$Payload\edge.ps1", "$Payload\updates.ps1", "$Payload\update-check.ps1", "$Payload\tweaks.json", "$Payload\logo.png" $H
+    Copy-Item "$Payload\pe.xml", "$Payload\offline.cmd", "$Payload\whatos-prep.ps1", "$Payload\edge.ps1", "$Payload\updates.ps1", "$Payload\update-check.ps1", "$Payload\tweaks.json", "$Payload\logo.png", "$Payload\whatos-wallpaper.jpg", "$Payload\whatos.theme" $H
     if (Test-Path "$Payload\WhatOS.exe") { Copy-Item "$Payload\WhatOS.exe", "$Payload\WhatOSLink.exe" $H }
     $b = { param($v) if ($v -eq 'remove') { '0' } else { '1' } }
     $keep = @()

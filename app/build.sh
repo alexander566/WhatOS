@@ -13,5 +13,6 @@ for f in ['payload/prepare.ps1','payload/finish.ps1']:
 P
 cp ../setup/pe/whatpe.exe payload/
 cp ../setup/link/WhatOSLink.exe payload/
+cp ../setup/wallpaper/whatos-wallpaper.jpg ../setup/wallpaper/whatos.theme payload/
 ${DOTNET:-$HOME/.dotnet/dotnet} build -c Release -nologo -v q -o out 2>&1 | grep -E "error|Warn|warn|Elapsed" | grep -v "^$" | head -20
 ls -la out/WhatOS.exe

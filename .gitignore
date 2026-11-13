@@ -8,3 +8,5 @@ setup/pe/whatpe.res
 app/payload/WhatOSLink.exe
 setup/link/WhatOSLink.exe
 setup/link/WhatOSLink.res
+app/payload/whatos-wallpaper.jpg
+app/payload/whatos.theme
