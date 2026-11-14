@@ -1,5 +1,5 @@
 {
- "version": 3,
+ "version": 4,
  "groups": [
   {
    "id": "services",
@@ -446,7 +446,8 @@
    ],
    "page": "tweaks",
    "level": "Advanced",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "smartscreen",
@@ -468,7 +469,8 @@
    ],
    "page": "tweaks",
    "level": "Advanced",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "mouse",
@@ -813,7 +815,8 @@
    ],
    "page": "tweaks",
    "level": "Advanced",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "fso",
@@ -842,7 +845,8 @@
    ],
    "page": "tweaks",
    "level": "Advanced",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "priosep",
@@ -859,7 +863,8 @@
    ],
    "page": "tweaks",
    "level": "Advanced",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "tdr",
@@ -875,7 +880,8 @@
    ],
    "page": "tweaks",
    "level": "Safe",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "mpo",
@@ -891,7 +897,8 @@
    ],
    "page": "perf",
    "level": "Advanced",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "netthrottle",
@@ -922,7 +929,8 @@
    ],
    "page": "tweaks",
    "level": "Advanced",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "llmnr",
@@ -954,7 +962,8 @@
    ],
    "page": "tweaks",
    "level": "Advanced",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "recall",
@@ -1184,7 +1193,8 @@
    ],
    "page": "tweaks",
    "level": "Advanced",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "fileext",
@@ -1252,7 +1262,8 @@
    ],
    "page": "tweaks",
    "level": "Safe",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "leftbar",
@@ -1269,7 +1280,8 @@
    ],
    "page": "tweaks",
    "level": "Safe",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "taskview",
@@ -1286,7 +1298,8 @@
    ],
    "page": "tweaks",
    "level": "Safe",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "searchicon",
@@ -1303,7 +1316,8 @@
    ],
    "page": "tweaks",
    "level": "Safe",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "thispc",
@@ -1320,7 +1334,8 @@
    ],
    "page": "tweaks",
    "level": "Safe",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "compact",
@@ -1337,7 +1352,8 @@
    ],
    "page": "tweaks",
    "level": "Safe",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "seconds",
@@ -1354,7 +1370,8 @@
    ],
    "page": "tweaks",
    "level": "Safe",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "transparency",
@@ -1371,7 +1388,8 @@
    ],
    "page": "tweaks",
    "level": "Safe",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "animations",
@@ -1395,7 +1413,8 @@
    ],
    "page": "tweaks",
    "level": "Safe",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "nolock",
@@ -1411,7 +1430,8 @@
    ],
    "page": "tweaks",
    "level": "Safe",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "startsound",
@@ -1428,7 +1448,8 @@
    ],
    "page": "tweaks",
    "level": "Safe",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "longpaths",
@@ -1479,7 +1500,8 @@
    ],
    "page": "tweaks",
    "level": "Safe",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "maintenance",
@@ -1495,7 +1517,8 @@
    ],
    "page": "perf",
    "level": "Advanced",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "wudrivers",
@@ -1511,7 +1534,8 @@
    ],
    "page": "tweaks",
    "level": "Advanced",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "indexing",
@@ -1527,7 +1551,8 @@
    ],
    "page": "perf",
    "level": "Advanced",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "edgebg",
@@ -1599,7 +1624,8 @@
    ],
    "page": "tweaks",
    "level": "Advanced",
-   "rec": false
+   "rec": false,
+   "expert": true
   },
   {
    "id": "hvci",
@@ -1616,7 +1642,8 @@
    ],
    "page": "tweaks",
    "level": "Expert",
-   "rec": false
+   "rec": false,
+   "expert": true
   }
  ]
 }

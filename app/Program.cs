@@ -22,6 +22,67 @@ namespace WhatOS
         public static Version Ver => Assembly.GetExecutingAssembly().GetName().Version;
         public static string VerText => Ver.Major == 0 && Ver.Minor == 1 && Ver.Build == 0 ? "dev" : "v" + Ver.Major + "." + Ver.Minor + "." + Ver.Build;
 
+        public const string InstDir = @"C:\Program Files\WhatOS";
+        static string InstExe => Path.Combine(InstDir, "WhatOS.exe");
+
+        static bool Install()
+        {
+            if (VerText == "dev" || Args.Contains("--portable")) return false;
+            var self = Application.ExecutablePath;
+            if (string.Equals(Path.GetFullPath(self), InstExe, StringComparison.OrdinalIgnoreCase)) { Register(false); return false; }
+            try
+            {
+                Directory.CreateDirectory(InstDir);
+                Version have = null;
+                try { if (File.Exists(InstExe)) have = new Version(FileVersionInfo.GetVersionInfo(InstExe).FileVersion); } catch { }
+                if (have == null || have < new Version(Ver.Major, Ver.Minor, Ver.Build, 0))
+                {
+                    foreach (var p in Process.GetProcessesByName("WhatOS")) try { if (p.Id != Process.GetCurrentProcess().Id && string.Equals(p.MainModule.FileName, InstExe, StringComparison.OrdinalIgnoreCase)) { p.Kill(); p.WaitForExit(5000); } } catch { }
+                    File.Copy(self, InstExe, true);
+                    Register(true);
+                }
+                Process.Start(new ProcessStartInfo(InstExe, string.Join(" ", Args.Select(x => "\"" + x + "\""))) { UseShellExecute = false });
+                return true;
+            }
+            catch { return false; }
+        }
+
+        static void Register(bool fresh)
+        {
+            try
+            {
+                using (var k = Microsoft.Win32.Registry.LocalMachine.CreateSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\WhatOS"))
+                {
+                    k.SetValue("DisplayName", "WhatOS");
+                    k.SetValue("Publisher", "WhatOS");
+                    k.SetValue("DisplayVersion", VerText.TrimStart('v'));
+                    k.SetValue("DisplayIcon", InstExe);
+                    k.SetValue("InstallLocation", InstDir);
+                    k.SetValue("UninstallString", "\"" + InstExe + "\" --uninstall");
+                    k.SetValue("URLInfoAbout", "https://github.com/alexander566/WhatOS");
+                    k.SetValue("EstimatedSize", (int)(new FileInfo(InstExe).Length / 1024), Microsoft.Win32.RegistryValueKind.DWord);
+                    k.SetValue("NoModify", 1, Microsoft.Win32.RegistryValueKind.DWord);
+                    k.SetValue("NoRepair", 1, Microsoft.Win32.RegistryValueKind.DWord);
+                }
+                var start = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms), "WhatOS.lnk");
+                if (fresh || !File.Exists(start)) Shortcut(start);
+                if (fresh) Shortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory), "WhatOS.lnk"));
+            }
+            catch { }
+        }
+
+        static void Shortcut(string path)
+        {
+            var t = Type.GetTypeFromProgID("WScript.Shell");
+            var sh = Activator.CreateInstance(t);
+            var lnk = t.InvokeMember("CreateShortcut", BindingFlags.InvokeMethod, null, sh, new object[] { path });
+            var lt = lnk.GetType();
+            lt.InvokeMember("TargetPath", BindingFlags.SetProperty, null, lnk, new object[] { InstExe });
+            lt.InvokeMember("WorkingDirectory", BindingFlags.SetProperty, null, lnk, new object[] { InstDir });
+            lt.InvokeMember("Description", BindingFlags.SetProperty, null, lnk, new object[] { "WhatOS Tweaker" });
+            lt.InvokeMember("Save", BindingFlags.InvokeMethod, null, lnk, null);
+        }
+
         public static bool ApplyPending()
         {
             var exe = Application.ExecutablePath;
@@ -79,6 +140,7 @@ namespace WhatOS
             }
             Args = args;
             if (ApplyPending()) return;
+            if (Install()) return;
             AppDomain.CurrentDomain.AssemblyResolve += (s, e) =>
             {
                 var n = new AssemblyName(e.Name).Name + ".dll";
@@ -314,7 +376,7 @@ Remove-Item 'HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\WhatOSGameMode' -Rec
 Remove-Item ""$env:PUBLIC\Desktop\WhatOS.lnk"" -Force -EA 0
 Remove-Item ""$env:ProgramData\Microsoft\Windows\Start Menu\Programs\WhatOS.lnk"" -Force -EA 0
 Remove-Item 'C:\ProgramData\WhatOS', 'C:\Windows\WhatOS' -Recurse -Force -EA 0
-Start-Process cmd -ArgumentList '/c ping -n 4 127.0.0.1 >nul & rd /s /q ""C:\Program Files\WhatOS""' -WindowStyle Hidden
+Start-Process powershell -WindowStyle Hidden -ArgumentList '-NoProfile','-Command','for($i=0;$i -lt 150;$i++){ Remove-Item ""C:\Program Files\WhatOS"" -Recurse -Force -EA 0; if(-not (Test-Path ""C:\Program Files\WhatOS"")){break}; Start-Sleep 2 }'
 "); Send(new { type = "uninstalled" }); }); break;
                     case "reboot": Process.Start(new ProcessStartInfo("shutdown.exe", "/r /t 0") { CreateNoWindow = true, UseShellExecute = false }); break;
                     case "close": Close(); break;
