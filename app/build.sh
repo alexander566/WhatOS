@@ -17,5 +17,6 @@ cp ../setup/pe/logo.png ui/
 cp ../setup/link/WhatOSLink.exe payload/
 cp ../setup/ram/WhatOSRam.exe payload/
 cp ../setup/wallpaper/whatos-wallpaper.jpg ../setup/wallpaper/whatos.theme payload/
-${DOTNET:-$HOME/.dotnet/dotnet} build -c Release -nologo -v q -o out 2>&1 | grep -E "error|Warn|warn|Elapsed" | grep -v "^$" | head -20
+VER=$(git describe --tags --exact-match 2>/dev/null | sed "s/^v//")
+${DOTNET:-$HOME/.dotnet/dotnet} build -c Release -nologo -v q -o out ${VER:+-p:Version=$VER} 2>&1 | grep -E "error|Warn|warn|Elapsed" | grep -v "^$" | head -20
 ls -la out/WhatOS.exe

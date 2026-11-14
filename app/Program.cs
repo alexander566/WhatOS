@@ -19,11 +19,40 @@ namespace WhatOS
         public static int StartTab;
 
         [STAThread]
+        static bool SelfUpdate(string[] args)
+        {
+            var exe = Application.ExecutablePath;
+            try { File.Delete(exe + ".old"); } catch { }
+            var cur = Assembly.GetExecutingAssembly().GetName().Version;
+            if (cur.Major == 0 && cur.Minor == 1 && cur.Build == 0) return false;
+            try
+            {
+                System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
+                var rq = (System.Net.HttpWebRequest)System.Net.WebRequest.Create("https://api.github.com/repos/alexander566/WhatOS/releases/latest");
+                rq.UserAgent = "WhatOS"; rq.Timeout = 5000;
+                string body;
+                using (var rs = rq.GetResponse()) using (var sr = new StreamReader(rs.GetResponseStream())) body = sr.ReadToEnd();
+                var d = (Dictionary<string, object>)new System.Web.Script.Serialization.JavaScriptSerializer().DeserializeObject(body);
+                if (!Version.TryParse(((string)d["tag_name"]).TrimStart('v'), out var latest) || latest <= new Version(cur.Major, cur.Minor, cur.Build)) return false;
+                string url = null;
+                foreach (Dictionary<string, object> x in (object[])d["assets"]) if ((string)x["name"] == "WhatOS.exe") url = (string)x["browser_download_url"];
+                if (url == null) return false;
+                using (var w = new System.Net.WebClient()) { w.Headers.Add("User-Agent", "WhatOS"); w.DownloadFile(url, exe + ".new"); }
+                if (new FileInfo(exe + ".new").Length < 500000) { File.Delete(exe + ".new"); return false; }
+                File.Move(exe, exe + ".old");
+                File.Move(exe + ".new", exe);
+                Process.Start(new ProcessStartInfo(exe, string.Join(" ", args.Select(x => "\"" + x + "\""))) { UseShellExecute = false });
+                return true;
+            }
+            catch { try { if (!File.Exists(exe) && File.Exists(exe + ".old")) File.Move(exe + ".old", exe); } catch { } return false; }
+        }
+
         static void Main(string[] args)
         {
             var a = string.Join(" ", args).ToLowerInvariant();
             StartTab = a.Contains("updates") ? 1 : a.Contains("--uninstall") ? 3 : 0;
             Directory.CreateDirectory(Work);
+            if (SelfUpdate(args)) return;
             AppDomain.CurrentDomain.AssemblyResolve += (s, e) =>
             {
                 var n = new AssemblyName(e.Name).Name + ".dll";
