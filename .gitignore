@@ -11,3 +11,6 @@ setup/link/WhatOSLink.res
 app/payload/whatos-wallpaper.jpg
 app/payload/whatos.theme
 app/payload/logo.png
+app/payload/WhatOSRam.exe
+setup/ram/WhatOSRam.exe
+setup/ram/WhatOSRam.res

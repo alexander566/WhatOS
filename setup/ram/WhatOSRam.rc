@@ -1,0 +1,28 @@
+#include <winver.h>
+1 24 "WhatOSRam.manifest"
+1 ICON "../../app/app.ico"
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION 0,1,0,0
+PRODUCTVERSION 0,1,0,0
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904B0"
+    BEGIN
+      VALUE "CompanyName", "WhatOS"
+      VALUE "FileDescription", "WhatOS Clear RAM"
+      VALUE "FileVersion", "0.1.0.0"
+      VALUE "InternalName", "WhatOSRam"
+      VALUE "LegalCopyright", "WhatOS, GPL-3.0"
+      VALUE "OriginalFilename", "WhatOSRam.exe"
+      VALUE "ProductName", "WhatOS"
+      VALUE "ProductVersion", "0.1.0.0"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x409, 1200
+  END
+END

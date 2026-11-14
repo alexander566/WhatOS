@@ -6,6 +6,11 @@ if(Test-Path 'C:\Program Files\WhatOS\WhatOS.exe'){
  $tr=@((New-ScheduledTaskTrigger -Daily -At 12:00), (New-ScheduledTaskTrigger -AtLogOn)); $tr[1].Delay='PT10M'
  Register-ScheduledTask -TaskName WhatOSUpdateCheck -Action $a -Trigger $tr -Principal (New-ScheduledTaskPrincipal -GroupId 'BUILTIN\Users') -Settings (New-ScheduledTaskSettingsSet -StartWhenAvailable) -Force | Out-Null
  "update check task $([bool](Get-ScheduledTask -TaskName WhatOSUpdateCheck -EA 0))" | Add-Content C:\whatos-post.txt
+ if(Test-Path 'C:\Program Files\WhatOS\WhatOSRam.exe'){
+  Register-ScheduledTask -TaskName WhatOSClearRAM -Action (New-ScheduledTaskAction -Execute 'C:\Program Files\WhatOS\WhatOSRam.exe') -Principal (New-ScheduledTaskPrincipal -GroupId 'BUILTIN\Administrators' -RunLevel Highest) -Settings (New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 2)) -Force | Out-Null
+  $ts=New-Object -ComObject Schedule.Service; $ts.Connect(); $ts.GetFolder('\').GetTask('WhatOSClearRAM').SetSecurityDescriptor('D:(A;;FA;;;BA)(A;;FA;;;SY)(A;;GRGX;;;AU)',0)
+  "clear ram task $([bool](Get-ScheduledTask -TaskName WhatOSClearRAM -EA 0))" | Add-Content C:\whatos-post.txt
+ }
 }
 $wf='C:\Windows\Setup\Scripts\wifi'
 if(Test-Path $wf){ Get-ChildItem $wf -Filter *.xml | % { netsh wlan add profile filename="$($_.FullName)" user=all | Out-Null }; Remove-Item $wf -Recurse -Force }

@@ -64,6 +64,7 @@ copy /y %H%:\whatos\tweaks.json %T%:\Windows\WhatOS\ >nul
 if exist %H%:\whatos\WhatOS.exe mkdir "%T%:\Program Files\WhatOS" 2>nul
 if exist %H%:\whatos\WhatOS.exe copy /y %H%:\whatos\WhatOS.exe "%T%:\Program Files\WhatOS\" >nul
 if exist %H%:\whatos\WhatOSLink.exe copy /y %H%:\whatos\WhatOSLink.exe "%T%:\Program Files\WhatOS\" >nul
+if exist %H%:\whatos\WhatOSRam.exe copy /y %H%:\whatos\WhatOSRam.exe "%T%:\Program Files\WhatOS\" >nul
 copy /y %H%:\whatos\logo.png %T%:\Windows\WhatOS\ >nul
 mkdir %T%:\Windows\Web\Wallpaper\WhatOS 2>nul
 copy /y %H%:\whatos\whatos-wallpaper.jpg %T%:\Windows\Web\Wallpaper\WhatOS\whatos.jpg >nul
@@ -87,6 +88,10 @@ reg add HKLM\OS\Classes\whatos /ve /t REG_SZ /d "URL:WhatOS" /f >nul
 reg add HKLM\OS\Classes\whatos /v "URL Protocol" /t REG_SZ /d "" /f >nul
 reg add HKLM\OS\Classes\whatos\shell\open\command /ve /t REG_SZ /d "\"C:\Program Files\WhatOS\WhatOSLink.exe\" \"%%1\"" /f >nul
 reg add HKLM\OS\Microsoft\Windows\CurrentVersion\Themes /v InstallTheme /t REG_EXPAND_SZ /d "%%SystemRoot%%\Resources\Themes\whatos.theme" /f >nul
+set RM=HKLM\OS\Classes\DesktopBackground\Shell\WhatOSClearRAM
+reg add %RM% /v MUIVerb /t REG_SZ /d "Clear RAM" /f >nul
+reg add %RM% /v Icon /t REG_SZ /d "C:\Program Files\WhatOS\WhatOSRam.exe,0" /f >nul
+reg add %RM%\command /ve /t REG_SZ /d "\"C:\Program Files\WhatOS\WhatOSRam.exe\"" /f >nul
 reg add HKLM\OS\Classes\AppUserModelId\WhatOS /v DisplayName /t REG_SZ /d WhatOS /f >nul
 reg add HKLM\OS\Classes\AppUserModelId\WhatOS /v IconUri /t REG_SZ /d C:\Windows\WhatOS\logo.png /f >nul
 set UN=HKLM\OS\Microsoft\Windows\CurrentVersion\Uninstall\WhatOS
