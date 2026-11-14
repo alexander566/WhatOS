@@ -99,7 +99,7 @@ const sw=g=>`<button class="sw ${g.state==="on"?"on":g.state==="mixed"||g.state=
 const grow=g=>`<div class="row"><div class="t"><b>${esc(g.name)}${g.level?`<span class="tag ${g.level}">${g.level}</span>`:""}</b><small>${esc(g.desc)}${g.state==="yours"?" · changed by you":g.state==="n/a"?" · not on this PC":""}</small></div>${sw(g)}</div>`;
 const fmtB=b=>b>=1099511627776?(b/1099511627776).toFixed(1)+" TB":b>=1073741824?(b/1073741824).toFixed(1)+" GB":Math.round(b/1048576)+" MB";
 function paintStats(){const x=T.stats,set=(k,v,p,sub)=>{const b=document.querySelector(`#tw [data-k=${k}]`);if(!b)return;b.querySelector(".big").textContent=v;b.querySelector(".bar i").style.width=Math.max(0,Math.min(100,p))+"%";if(sub!=null)b.querySelector("small").textContent=sub};
-  set("CPU",x.cpu+"%",x.cpu);set("GPU",x.gpu+"%",x.gpu);const r=x.ramUsed/x.ramTotal*100;set("MEMORY",Math.round(r)+"%",r,fmtB(x.ramUsed)+" of "+fmtB(x.ramTotal)+" in use · "+x.procs+" processes");
+  set("CPU",x.cpu+"%",x.cpu);set("GPU",x.gpu==null?"…":x.gpu+"%",x.gpu||0);const r=x.ramUsed/x.ramTotal*100;set("MEMORY",Math.round(r)+"%",r,fmtB(x.ramUsed)+" of "+fmtB(x.ramTotal)+" in use · "+x.procs+" processes");
   set("DISK",x.disk+"%",x.disk,"active time · C: "+fmtB(x.diskUsed)+" of "+fmtB(x.diskTotal)+" used");const u=$("#tw .sub");if(u&&T.sys)u.textContent=T.sys.host+" · up "+upt(x.uptime)}
 const upt=s=>{const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h} h ${m} min`:`${m} min`};
 function renderTW(){
@@ -115,7 +115,7 @@ function renderTW(){
     const card=(k,v,p,sub)=>`<div class="box" data-k="${k}"><span class="lab">${k}</span><span class="big">${v}</span><div class="bar"><i style="width:${Math.max(0,Math.min(100,p))}%"></i></div><small class="sub" style="font-size:12px">${sub}</small></div>`;
     const gp=y&&y.gpus&&y.gpus.length?y.gpus[0]:null;
     P.innerHTML=`<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><h1>Dashboard</h1><p class="sub">${y?esc(y.host):""}${x?" · up "+upt(x.uptime):""}</p></div><div style="display:flex;gap:8px"><button class="btn pri" id="cram">${T.ramBusy?"Clearing…":"Clear RAM"}</button></div></div>
-    <div class="grid g4">${x?card("CPU",x.cpu+"%",x.cpu,y?esc(y.cpu):"")+card("GPU",x.gpu+"%",x.gpu,gp?esc(gp.name):"")+card("MEMORY",Math.round(x.ramUsed/x.ramTotal*100)+"%",x.ramUsed/x.ramTotal*100,fmtB(x.ramUsed)+" of "+fmtB(x.ramTotal)+" in use · "+x.procs+" processes")+card("DISK",x.disk+"%",x.disk,"active time · C: "+fmtB(x.diskUsed)+" of "+fmtB(x.diskTotal)+" used"):`<div class="box"><span class="sub">Reading…</span></div>`}</div>
+    <div class="grid g4">${x?card("CPU",x.cpu+"%",x.cpu,y?esc(y.cpu):"")+card("GPU",x.gpu==null?"…":x.gpu+"%",x.gpu||0,gp?esc(gp.name):"")+card("MEMORY",Math.round(x.ramUsed/x.ramTotal*100)+"%",x.ramUsed/x.ramTotal*100,fmtB(x.ramUsed)+" of "+fmtB(x.ramTotal)+" in use · "+x.procs+" processes")+card("DISK",x.disk+"%",x.disk,"active time · C: "+fmtB(x.diskUsed)+" of "+fmtB(x.diskTotal)+" used"):`<div class="box"><span class="sub">Reading…</span></div>`}</div>
     <div class="grid g2"><div class="box"><b>This PC</b>${y?[["Windows",y.os+" "+(y.ver||"")+" ("+y.build+")"],["CPU",y.cpu+" · "+y.cores+" cores / "+y.threads+" threads"],...(y.gpus||[]).map(g=>["GPU",g.name+" · driver "+g.drv]),["RAM",y.ram+" GB"],["Disk",(y.disk||"")],["Firmware",(y.fw||"")+(y.secureBoot?" · Secure Boot on":"")+(y.tpm?" · TPM "+y.tpm:"")]].map(([k,v])=>`<div class="kv"><span>${k}</span><span>${esc(v)}</span></div>`).join(""):`<span class="sub">Reading…</span>`}</div>
     <div class="box"><b>WhatOS</b><div class="kv"><span>Tweaks on</span><span>${d?on+" of "+G.length:"…"}</span></div><div class="kv"><span>Tweak set</span><span>${d?"v"+d.manifest:"…"}</span></div></div></div>
     <div style="display:flex;align-items:center;justify-content:space-between"><h2>Health check</h2><button class="btn" id="hchk" ${T.hb?"disabled":""}>${T.hb?"Checking…":"Check again"}</button></div>
@@ -217,8 +217,10 @@ window.chrome.webview.addEventListener("message",e=>{const m=e.data;
   if(m.type==="info"){S.info=m.info;S.vssBusy=false;renderTW()}
   if(m.type==="stats"){const rb=T.ramBusy;T.ramBusy=false;if(m.data)T.stats=m.data;if(T.page==="dash"&&!T.q){if(!rb&&m.data&&document.querySelector("#tw [data-k=CPU]"))paintStats();else renderTW()}}
   if(m.type==="sysinfo"){if(m.data)T.sys=m.data;if(T.page==="dash")renderTW()}
+  if(m.type==="health"&&m.cached){if(!T.health)T.health=[].concat(m.data);T.hb=true;if(T.page==="dash")renderTW();return}
   if(m.type==="health"){T.hb=false;T.health=m.data?[].concat(m.data):[{ok:false,name:"Health check",desc:m.err||"Could not run",res:"Error"}];if(T.page==="dash")renderTW()}
-  if(m.type==="manage"){M.busy=false;if(m.data)M.data=m.data;else if(m.err)alert(m.err);renderTW()}
+  if(m.type==="manage"&&m.cached){if(!M.data){M.data=m.data;M.busy=true;renderTW()}return}
+  if(m.type==="manage"){M.busy=false;if(m.data){M.data=m.data;}else if(m.err)alert(m.err);renderTW()}
   if(m.type==="diff"){M.checking=false;M.diff=m.data||{err:m.err||"Could not check for updates."};renderTW()}
   if(m.type==="updated"){M.busy=false;M.diff=null;M.data=m.data||M.data;renderTW()}
   if(m.type==="uninstalled"){M.busy=false;$("#hint").textContent="";$("#page").innerHTML=`<h1>WhatOS removed</h1><p class="sub">Windows defaults are back. Restart your PC to finish.</p><div class="fin"><button class="btn pri" id="rb">Restart now</button><button class="btn" id="cl">Later</button></div>`;$("#rb").onclick=()=>host.send({cmd:"reboot"});$("#cl").onclick=()=>host.send({cmd:"close"})}
@@ -235,6 +237,6 @@ window.addEventListener("resize",()=>{if(T.page==="install"&&PAGES[S.p]!=="insta
 $("#q").addEventListener("input",e=>{T.q=e.target.value.trim();renderTW()});
 $("#title").addEventListener("mousedown",e=>{if(e.button===0&&!e.target.closest("button"))host.send({cmd:e.detail>1?"max":"drag"})});
 $("#wmin").onclick=()=>host.send({cmd:"min"});$("#wmax").onclick=()=>host.send({cmd:"max"});$("#wx").onclick=()=>host.send({cmd:"close"});
-host.send({cmd:"manage",action:"status"});host.send({cmd:"sysinfo"});setTimeout(()=>host.send({cmd:"health"}),4000);
+host.send({cmd:"manage",action:"status"});host.send({cmd:"sysinfo"});host.send({cmd:"health"});
 renderTW();
 </script></body></html>

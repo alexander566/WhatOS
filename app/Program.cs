@@ -247,10 +247,10 @@ namespace WhatOS
                     case "restart": RunPs("finish.ps1", "-Action restart", false); break;
                     case "cancel": RunPs("finish.ps1", "-Action cancel", true); break;
                     case "stats": if (statsBusy || WindowState == FormWindowState.Minimized) break; statsBusy = true; Task.Run(() => { try { try { Send(new { type = "stats", data = Stats() }); } catch (Exception ex) { Send(new { type = "stats", err = ex.Message }); } } finally { statsBusy = false; } }); break;
-                    case "sysinfo": Task.Run(() => { var cf = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WhatOS", "sysinfo.json"); try { if (File.Exists(cf)) Send(new { type = "sysinfo", data = json.DeserializeObject(File.ReadAllText(cf)) }); } catch { } try { var si = SysInfo(); Send(new { type = "sysinfo", data = si }); Directory.CreateDirectory(Path.GetDirectoryName(cf)); File.WriteAllText(cf, json.Serialize(si)); } catch (Exception ex) { Send(new { type = "sysinfo", err = ex.Message }); } }); break;
-                    case "health": Task.Run(() => { try { Send(new { type = "health", data = Health() }); } catch (Exception ex) { Send(new { type = "health", err = ex.Message }); } }); break;
+                    case "sysinfo": Task.Run(() => SendCached("sysinfo", SysInfo)); break;
+                    case "health": Task.Run(() => SendCached("health", Health)); break;
                     case "clearram": Task.Run(() => { try { var r = @"C:\Program Files\WhatOS\WhatOSRam.exe"; if (!File.Exists(r)) { r = Path.Combine(Program.Work, "WhatOSRam.exe"); Program.Extract("payload.WhatOSRam.exe", r); } if (File.Exists(r)) Process.Start(r)?.WaitForExit(15000); Send(new { type = "stats", data = Stats() }); } catch { } }); break;
-                    case "manage": { var a = m["action"] as string; var id = m.ContainsKey("id") ? m["id"] as string : ""; Task.Run(() => { var o = Manage("-Action " + a + " -Id \"" + id + "\""); Send(o != null ? (object)new { type = "manage", data = o } : new { type = "manage", err = "WhatOS could not change this setting." }); }); break; }
+                    case "manage": { var a = m["action"] as string; var id = m.ContainsKey("id") ? m["id"] as string : ""; if (a == "status") { Task.Run(() => SendCached("manage", () => Manage("-Action status"))); break; } Task.Run(() => { var o = Manage("-Action " + a + " -Id \"" + id + "\""); Send(o != null ? (object)new { type = "manage", data = o } : new { type = "manage", err = "WhatOS could not change this setting." }); }); break; }
                     case "updcheck": Task.Run(() => { try { var rf = Path.Combine(Program.Work, "remote.json"); using (var w = new System.Net.WebClient()) { System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12; w.DownloadFile(ManifestUrl, rf); } var o = Manage("-Action diff -Manifest \"" + rf + "\""); Send(new { type = "diff", data = o }); } catch (Exception ex) { Send(new { type = "diff", err = "Could not check for updates: " + ex.Message }); } }); break;
                     case "updapply": Task.Run(() => { var o = Manage("-Action update -Manifest \"" + Path.Combine(Program.Work, "remote.json") + "\""); Send(new { type = "updated", data = o }); }); break;
                     case "uninstall": Task.Run(() => { Manage("-Action restore"); Ps(@"
@@ -297,6 +297,16 @@ Start-Process cmd -ArgumentList '/c ping -n 4 127.0.0.1 >nul & rd /s /q ""C:\Pro
             return last == null ? null : json.DeserializeObject(last);
         }
 
+        void SendCached(string type, Func<object> f)
+        {
+            var cf = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WhatOS", type + ".json");
+            try { if (File.Exists(cf)) Send(new { type, cached = true, data = json.DeserializeObject(File.ReadAllText(cf)) }); } catch { }
+            object d = null;
+            try { d = f(); } catch (Exception ex) { Send(new { type, err = ex.Message }); return; }
+            Send(d != null ? (object)new { type, data = d } : new { type, err = "WhatOS could not read this." });
+            try { if (d != null) { Directory.CreateDirectory(Path.GetDirectoryName(cf)); File.WriteAllText(cf, json.Serialize(d)); } } catch { }
+        }
+
         static PerformanceCounter cpuC;
         static volatile bool statsBusy;
         static PerformanceCounter diskC, procC;
@@ -310,13 +320,13 @@ Start-Process cmd -ArgumentList '/c ping -n 4 127.0.0.1 >nul & rd /s /q ""C:\Pro
                 cpuC = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total"); cpuC.NextValue();
                 diskC = new PerformanceCounter("PhysicalDisk", "% Idle Time", "_Total"); diskC.NextValue();
                 procC = new PerformanceCounter("System", "Processes");
-                try { gpuCat = new PerformanceCounterCategory("GPU Engine"); gpuPrev = gpuCat.ReadCategory()["utilization percentage"]; } catch { }
-                System.Threading.Thread.Sleep(500);
+                Task.Run(() => { try { var g = new PerformanceCounterCategory("GPU Engine"); gpuPrev = g.ReadCategory()["utilization percentage"]; gpuCat = g; } catch { } });
+                System.Threading.Thread.Sleep(300);
             }
             double cpu = Math.Min(100, cpuC.NextValue());
             var ms = new MEMORYSTATUSEX(); ms.dwLength = (uint)System.Runtime.InteropServices.Marshal.SizeOf(ms); GlobalMemoryStatusEx(ref ms);
-            double gpu = 0;
-            try
+            double? gpu = null;
+            if (gpuCat != null) try
             {
                 var a = gpuPrev;
                 var b = gpuCat.ReadCategory()["utilization percentage"];
@@ -331,14 +341,14 @@ Start-Process cmd -ArgumentList '/c ping -n 4 127.0.0.1 >nul & rd /s /q ""C:\Pro
                     var v = CounterSample.Calculate(a[n].Sample, x.Sample);
                     per[key] = (per.TryGetValue(key, out var o) ? o : 0) + v;
                 }
-                if (per.Count > 0) gpu = per.Values.Max();
+                gpu = per.Count > 0 ? per.Values.Max() : 0;
             }
             catch { }
             double disk = Math.Max(0, Math.Min(100, 100 - diskC.NextValue()));
             var d = new DriveInfo("C");
             return new
             {
-                cpu = Math.Round(cpu), gpu = Math.Round(Math.Min(100, gpu)),
+                cpu = Math.Round(cpu), gpu = gpu.HasValue ? (object)Math.Round(Math.Min(100, gpu.Value)) : null,
                 ramUsed = (double)(ms.ullTotalPhys - ms.ullAvailPhys), ramTotal = (double)ms.ullTotalPhys,
                 diskUsed = (double)(d.TotalSize - d.AvailableFreeSpace), diskTotal = (double)d.TotalSize,
                 disk = Math.Round(disk), procs = (int)procC.NextValue(), uptime = GetTickCount64() / 1000
@@ -376,7 +386,7 @@ $dk=Get-PhysicalDisk | ? { $_.DeviceId -eq ((Get-Partition -DriveLetter C).DiskN
 A ($dk.HealthStatus -eq 'Healthy') 'Disk health' ""$($dk.FriendlyName)$(if($w -ne $null){"" · $(100-$w)% life left""})"" ([string]$dk.HealthStatus) ''
 $act=@(Get-CimInstance SoftwareLicensingProduct -Filter ""ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' and PartialProductKey is not null"" -EA 0 | ? LicenseStatus -eq 1).Count -gt 0
 A $act 'Windows activation' (Get-CimInstance Win32_OperatingSystem).Caption $(if($act){'Activated'}else{'Not activated'}) ''
-$pg=try{(Test-Connection 1.1.1.1 -Count 3 -EA Stop | measure ResponseTime -Average).Average}catch{$null}
+$pg=try{(Test-Connection 1.1.1.1 -Count 2 -EA Stop | measure ResponseTime -Average).Average}catch{$null}
 A ($null -ne $pg) 'Internet' 'Ping to 1.1.1.1' $(if($null -ne $pg){""$([int]$pg) ms""}else{'No connection'}) ''
 $f=(Get-Volume C).SizeRemaining; A ($f -gt 20GB) 'Free space on C:' ""$([math]::Round($f/1GB)) GB free"" $(if($f -gt 20GB){'Good'}else{'Low'}) 'clean'
 @($r) | ConvertTo-Json -Compress -Depth 3"));
