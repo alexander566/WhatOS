@@ -15,7 +15,7 @@ body{margin:0;padding:0;overflow:hidden;user-select:none}
 .kr .kt{flex:1 1 auto;min-width:0}.kr .seg{flex:0 0 auto;display:flex;width:auto}.kr .seg button{min-width:56px}
 </style></head><body>
 <div class="app">
-  <div class="title" id="title">/*LOGO*/<b>WhatOS</b><span>Installer</span><span class="wb"><button id="wmin" title="Minimize"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 5h10" stroke="currentColor"/></svg></button><button class="x" id="wx" title="Close"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor"/></svg></button></span></div>
+  <div class="title" id="title">/*LOGO*/<b>WhatOS</b><span>Installer</span><span class="wb"><button id="wmin" title="Minimize"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 5h10" stroke="currentColor"/></svg></button><button id="wmax" title="Maximize"><svg width="10" height="10" viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" fill="none" stroke="currentColor"/></svg></button><button class="x" id="wx" title="Close"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor"/></svg></button></span></div>
   <nav class="rail" id="rail"></nav>
   <div class="main"><div class="page" id="page"></div>
     <div class="foot"><span class="hint" id="hint"></span><button class="btn" id="back">Back</button><button class="btn pri" id="next">Next</button></div></div>
@@ -178,8 +178,8 @@ $("#back").onclick=()=>{S.p--;while(skip(S.p))S.p--;render()};
 const skip=i=>S.win==="iso"&&(PAGES[i].startsWith("app")||["edition","defender"].includes(PAGES[i]));
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&document.activeElement===document.body&&!$("#next").disabled&&!$("#next").hidden)$("#next").click()});
 window.addEventListener("resize",()=>{if(PAGES[S.p]!=="install")render()});
-$("#title").addEventListener("mousedown",e=>{if(e.button===0&&!e.target.closest("button"))host.send({cmd:"drag"})});
-$("#wmin").onclick=()=>host.send({cmd:"min"});$("#wx").onclick=()=>host.send({cmd:"close"});
+$("#title").addEventListener("mousedown",e=>{if(e.button===0&&!e.target.closest("button"))host.send({cmd:e.detail>1?"max":"drag"})});
+$("#wmin").onclick=()=>host.send({cmd:"min"});$("#wmax").onclick=()=>host.send({cmd:"max"});$("#wx").onclick=()=>host.send({cmd:"close"});
 host.send({cmd:"info"});
 render();
 </script></body></html>

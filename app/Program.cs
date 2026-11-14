@@ -95,6 +95,17 @@ namespace WhatOS
         readonly JavaScriptSerializer json = new JavaScriptSerializer();
         Process job;
 
+        protected override void WndProc(ref Message m)
+        {
+            base.WndProc(ref m);
+            if (m.Msg != 0x84 || WindowState == FormWindowState.Maximized) return;
+            var p = PointToClient(new Point(unchecked((short)(long)m.LParam), unchecked((short)((long)m.LParam >> 16))));
+            int g = 6, w = ClientSize.Width, h = ClientSize.Height;
+            bool l = p.X < g, r = p.X >= w - g, t = p.Y < g, b = p.Y >= h - g;
+            if (t && l) m.Result = (IntPtr)13; else if (t && r) m.Result = (IntPtr)14; else if (b && l) m.Result = (IntPtr)16; else if (b && r) m.Result = (IntPtr)17;
+            else if (l) m.Result = (IntPtr)10; else if (r) m.Result = (IntPtr)11; else if (t) m.Result = (IntPtr)12; else if (b) m.Result = (IntPtr)15;
+        }
+
         [System.Runtime.InteropServices.DllImport("user32.dll")] static extern bool ReleaseCapture();
         [System.Runtime.InteropServices.DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr h, int m, IntPtr w, IntPtr l);
         [System.Runtime.InteropServices.DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr h, int a, ref int v, int s);
@@ -117,6 +128,9 @@ namespace WhatOS
             FormBorderStyle = FormBorderStyle.None;
             BackColor = Color.FromArgb(18, 24, 33);
             ClientSize = new Size(1000, 640);
+            MinimumSize = new Size(860, 560);
+            Padding = new Padding(5);
+            Resize += (s, e) => Padding = new Padding(WindowState == FormWindowState.Maximized ? 0 : 5);
             StartPosition = FormStartPosition.CenterScreen;
             using (var r = Program.Res("ui.logo.png"))
             using (var b = new Bitmap(r))
@@ -218,6 +232,7 @@ Start-Process cmd -ArgumentList '/c ping -n 4 127.0.0.1 >nul & rd /s /q ""C:\Pro
                     case "reboot": Process.Start(new ProcessStartInfo("shutdown.exe", "/r /t 0") { CreateNoWindow = true, UseShellExecute = false }); break;
                     case "close": Close(); break;
                     case "min": WindowState = FormWindowState.Minimized; break;
+                    case "max": MaximizedBounds = Screen.FromControl(this).WorkingArea; WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized; break;
                     case "drag": ReleaseCapture(); SendMessage(Handle, 0xA1, (IntPtr)2, IntPtr.Zero); break;
                 }
             }
