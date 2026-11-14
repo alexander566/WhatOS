@@ -97,7 +97,7 @@ function mcall(action,id){M.busy=true;renderTW();host.send({cmd:"manage",action,
 function go(pg){T.page=pg;T.q="";$("#q").value="";if(pg==="install"){S.mode="install";}renderTW()}
 const sw=g=>`<button class="sw ${g.state==="on"?"on":g.state==="mixed"||g.state==="yours"?"mixed":""}" data-g="${g.id}" aria-label="${esc(g.name)}" ${M.busy||g.state==="n/a"?"disabled":""}></button>`;
 const grow=g=>`<div class="row"><div class="t"><b>${esc(g.name)}${g.level?`<span class="tag ${g.level}">${g.level}</span>`:""}</b><small>${esc(g.desc)}${g.state==="yours"?" · changed by you":g.state==="n/a"?" · not on this PC":""}</small></div>${sw(g)}</div>`;
-const fmtB=b=>b>=1e12?(b/1e12).toFixed(1)+" TB":b>=1e9?(b/1e9).toFixed(1)+" GB":Math.round(b/1e6)+" MB";
+const fmtB=b=>b>=1099511627776?(b/1099511627776).toFixed(1)+" TB":b>=1073741824?(b/1073741824).toFixed(1)+" GB":Math.round(b/1048576)+" MB";
 const upt=s=>{const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h} h ${m} min`:`${m} min`};
 function renderTW(){
   $("#side").innerHTML=NAV.map(([id,l])=>`<button class="nv ${T.page===id&&!T.q?"on":""}" data-nav="${id}"><i></i>${l}</button>`).join("");
