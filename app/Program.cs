@@ -114,33 +114,30 @@ namespace WhatOS
         Process job;
 
         [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-        struct RECT { public int L, T, R, B; }
+        struct WINDOWPOS { public IntPtr hwnd, after; public int x, y, cx, cy; public uint flags; }
+        [System.Runtime.InteropServices.DllImport("user32.dll")] static extern bool IsZoomed(IntPtr h);
         [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
         struct MINMAXINFO { public int ResX, ResY, MaxSizeX, MaxSizeY, MaxPosX, MaxPosY, MinTrackX, MinTrackY, MaxTrackX, MaxTrackY; }
-        [System.Runtime.InteropServices.DllImport("user32.dll")] static extern int GetSystemMetrics(int i);
 
         protected override void WndProc(ref Message m)
         {
             if (m.Msg == 0x24)
             {
-                var sc = Screen.FromHandle(Handle); var wa = sc.WorkingArea; var sb = sc.Bounds;
                 var mm = (MINMAXINFO)System.Runtime.InteropServices.Marshal.PtrToStructure(m.LParam, typeof(MINMAXINFO));
-                int f = GetSystemMetrics(32) + GetSystemMetrics(92);
-                mm.MaxPosX = wa.Left - sb.Left - f; mm.MaxPosY = wa.Top - sb.Top - f; mm.MaxSizeX = wa.Width + 2 * f; mm.MaxSizeY = wa.Height + 2 * f;
                 mm.MinTrackX = MinimumSize.Width; mm.MinTrackY = MinimumSize.Height;
                 System.Runtime.InteropServices.Marshal.StructureToPtr(mm, m.LParam, false);
                 m.Result = IntPtr.Zero;
                 return;
             }
+            if (m.Msg == 0x46 && IsZoomed(Handle))
+            {
+                var wp = (WINDOWPOS)System.Runtime.InteropServices.Marshal.PtrToStructure(m.LParam, typeof(WINDOWPOS));
+                var wa = ((wp.flags & 3) == 3 ? Screen.FromHandle(Handle) : Screen.FromRectangle(new Rectangle(wp.x, wp.y, Math.Max(1, wp.cx), Math.Max(1, wp.cy)))).WorkingArea;
+                wp.x = wa.X; wp.y = wa.Y; wp.cx = wa.Width; wp.cy = wa.Height; wp.flags &= ~3u;
+                System.Runtime.InteropServices.Marshal.StructureToPtr(wp, m.LParam, false);
+            }
             if (m.Msg == 0x83 && m.WParam != IntPtr.Zero)
             {
-                if (WindowState == FormWindowState.Maximized)
-                {
-                    var rc = (RECT)System.Runtime.InteropServices.Marshal.PtrToStructure(m.LParam, typeof(RECT));
-                    int f = GetSystemMetrics(32) + GetSystemMetrics(92);
-                    rc.L += f; rc.T += f; rc.R -= f; rc.B -= f;
-                    System.Runtime.InteropServices.Marshal.StructureToPtr(rc, m.LParam, false);
-                }
                 m.Result = IntPtr.Zero;
                 return;
             }
