@@ -12,13 +12,44 @@ body{margin:0;padding:0;overflow:hidden;user-select:none}
 .card[disabled]{opacity:.45;cursor:not-allowed}
 .err{color:var(--danger)}
 .fin{display:flex;gap:10px;flex-wrap:wrap}
+[hidden]{display:none!important}
+.tw h1+.sub,.tw div>h1+.sub{margin-top:-8px}
+.shell{display:grid;grid-template-columns:216px 1fr;grid-template-rows:40px 1fr;height:100vh;background:var(--win)}
+.shell .title{grid-column:1/-1;border-bottom:1px solid var(--line)}
+.q{display:flex;align-items:center;gap:8px;height:28px;width:min(360px,40%);margin:0 auto;padding:0 10px;border-radius:8px;background:var(--panel);border:1px solid var(--line);color:var(--muted)}
+.q input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:var(--ink);font:inherit;font-size:13px}
+.side{border-right:1px solid var(--line);padding:12px 10px;display:flex;flex-direction:column;gap:2px;overflow:auto}
+.nv{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:9px;border:0;background:transparent;color:#B7C1CF;font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.nv i{width:8px;height:8px;border-radius:3px;background:#3A4558}.nv.on{background:#1B2C47;color:#fff;font-weight:600}.nv.on i{background:var(--accent)}.nv:hover:not(.on){background:#151D28}
+.mainw{min-width:0;min-height:0;display:flex}
+.tw{flex:1;overflow:auto;padding:24px 28px;display:flex;flex-direction:column;gap:16px}
+.inst{flex:1;display:grid;grid-template-columns:190px 1fr;min-width:0;min-height:0}
+.tw>*{flex-shrink:0}.tw h1{font-size:22px}.tw h2{font-family:var(--display);font-size:15px;margin:6px 0 0}
+.grid{display:grid;gap:14px}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:1100px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.box{padding:16px 18px;border-radius:12px;background:var(--panel);border:1px solid var(--line);display:flex;flex-direction:column;gap:10px;min-width:0}
+.lab{color:var(--muted);font-size:12px;font-weight:600;letter-spacing:.4px}.big{font-family:var(--display);font-size:24px;font-weight:700}
+.bar{height:6px;border-radius:3px;background:#222C3A;overflow:hidden}.bar>i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.kv{display:flex;justify-content:space-between;gap:12px}.kv span:first-child{color:var(--muted)}.kv span:last-child{text-align:right}
+.list{display:flex;flex-direction:column;border-radius:12px;border:1px solid var(--line);overflow:hidden}
+.row{display:flex;align-items:center;gap:16px;padding:13px 18px;background:var(--panel);border-bottom:1px solid #1C2430}.row:last-child{border-bottom:0}
+.row .t{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}.row .t b{font-weight:600}.row .t small{color:var(--muted);font-size:13px}
+.dot{width:10px;height:10px;border-radius:5px;flex:0 0 auto}
+.tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;margin-left:8px}.tag.Safe{background:#1B3A2A;color:#6FD39B}.tag.Advanced{background:#3A2E16;color:#F2B84B}.tag.Expert{background:#3A1C1C;color:#FF8A80}
+.sw{width:46px;height:26px;flex:0 0 auto;border-radius:13px;border:0;padding:3px;display:flex;cursor:pointer;background:#2A3443;justify-content:flex-start}.sw::after{content:"";width:20px;height:20px;border-radius:10px;background:#8A96A8}
+.sw.on{background:var(--accent);justify-content:flex-end}.sw.on::after{background:#fff}.sw.mixed{background:#5A4A22}.sw:disabled{opacity:.45;cursor:default}
+.chips{display:flex;gap:8px;flex-wrap:wrap}.chip{height:34px;padding:0 14px;border-radius:17px;border:1px solid var(--line);background:var(--panel);color:#B7C1CF;font:inherit;font-weight:600;cursor:pointer}.chip.on{border-color:var(--accent);background:#1B2C47;color:#CFE0FF}
+.st{font-size:12px;font-weight:600}.ok{color:var(--ok)}.wn{color:var(--warn)}
 .kr .kt{flex:1 1 auto;min-width:0}.kr .seg{flex:0 0 auto;display:flex;width:auto}.kr .seg button{min-width:56px}
 </style></head><body>
-<div class="app">
-  <div class="title" id="title">/*LOGO*/<b>WhatOS</b><span>Installer</span><span class="wb"><button id="wmin" title="Minimize"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 5h10" stroke="currentColor"/></svg></button><button id="wmax" title="Maximize"><svg width="10" height="10" viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" fill="none" stroke="currentColor"/></svg></button><button class="x" id="wx" title="Close"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor"/></svg></button></span></div>
-  <nav class="rail" id="rail"></nav>
-  <div class="main"><div class="page" id="page"></div>
-    <div class="foot"><span class="hint" id="hint"></span><button class="btn" id="back">Back</button><button class="btn pri" id="next">Next</button></div></div>
+<div class="shell">
+  <div class="title" id="title">/*LOGO*/<b>WhatOS</b><span>Tweaker</span><label class="q"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" placeholder="Search tweaks and settings" aria-label="Search tweaks and settings"></label><span class="wb"><button id="wmin" title="Minimize"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 5h10" stroke="currentColor"/></svg></button><button id="wmax" title="Maximize"><svg width="10" height="10" viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" fill="none" stroke="currentColor"/></svg></button><button class="x" id="wx" title="Close"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor"/></svg></button></span></div>
+  <nav class="side" id="side"></nav>
+  <div class="mainw">
+    <div class="tw" id="tw"></div>
+    <div class="inst" id="inst" hidden><nav class="rail" id="rail"></nav><div class="main"><div class="page" id="page"></div>
+    <div class="foot"><span class="hint" id="hint"></span><button class="btn" id="back">Back</button><button class="btn pri" id="next">Next</button></div></div></div>
+  </div>
 </div>
 <script>
 /*BI*/
@@ -59,39 +90,56 @@ function canNext(){
   if(p==="confirm")return S.ok; return true;
 }
 
-const MR=["Tweaks","Updates","History","Reinstall"];
-function mcall(action,id){M.busy=true;renderManage();host.send({cmd:"manage",action,id:id||""})}
-function renderManage(){
-  $("#rail").innerHTML=MR.map((n,i)=>`<div class="rs ${i===M.tab?'on':''}" data-t="${i}" style="cursor:default"><span class="n">${i+1}</span><span class="l">${n}</span></div>`).join("");
-  $("#rail").querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{M.tab=+b.dataset.t;if(M.tab===1&&!M.diff&&!M.checking){M.checking=true;host.send({cmd:"updcheck"})}renderManage()});
-  $("#back").hidden=true;$("#next").hidden=true;$("#hint").textContent=M.busy?"Working…":"";
-  const P=$("#page"),d=M.data;
-  if(M.tab===1&&!M.diff&&!M.checking){M.checking=true;host.send({cmd:"updcheck"})}
-  if(!d&&M.tab!==1){P.innerHTML=`<h1>WhatOS</h1><p class="sub">Reading this PC…</p>`;return}
-  const badge=st=>st==="on"?'<span class="mono" style="color:var(--ok)">On</span>':st==="yours"?'<span class="mono" style="color:var(--warn)">Changed by you</span>':st==="mixed"?'<span class="mono" style="color:var(--warn)">Partly on</span>':st==="n/a"?'<span class="mono">Not on this PC</span>':'<span class="mono">Off</span>';
-  if(M.tab===0){
-    const cats=[...new Set(d.groups.map(g=>g.cat))];
-    P.innerHTML=`<h1>Your tweaks</h1><p class="sub">Turn any of them off or back on. Changes apply right away; some need a restart.</p><div class="krs" style="overflow:auto">${cats.map(c=>`<small class="mono" style="margin-top:6px">${esc(c)}</small>`+d.groups.filter(g=>g.cat===c).map(g=>`<div class="kr"><span class="kt">${esc(g.name)} ${badge(g.state)}<small>${esc(g.desc)}</small></span><span class="seg"><button class="${g.state==="on"?"on":""}" data-a="apply:${g.id}" ${M.busy||g.state==="n/a"?"disabled":""}>On</button><button class="${g.state==="off"?"on rm":""}" data-a="revert:${g.id}" ${M.busy||g.state==="n/a"?"disabled":""}>Off</button></span></div>`).join("")).join("")}</div>`;
+const NAV=[["dash","Dashboard"],["tweaks","Tweaks"],["perf","Performance"],["install","Install Windows"],["backup","Backup & history"]];
+const T={page:"dash",cat:"All",stats:null,sys:null,health:null,hb:false,q:""};
+let statTimer=null;
+function mcall(action,id){M.busy=true;renderTW();host.send({cmd:"manage",action,id:id||""})}
+function go(pg){T.page=pg;T.q="";$("#q").value="";if(pg==="install"){S.mode="install";}renderTW()}
+const sw=g=>`<button class="sw ${g.state==="on"?"on":g.state==="mixed"||g.state==="yours"?"mixed":""}" data-g="${g.id}" aria-label="${esc(g.name)}" ${M.busy||g.state==="n/a"?"disabled":""}></button>`;
+const grow=g=>`<div class="row"><div class="t"><b>${esc(g.name)}${g.level?`<span class="tag ${g.level}">${g.level}</span>`:""}</b><small>${esc(g.desc)}${g.state==="yours"?" · changed by you":g.state==="n/a"?" · not on this PC":""}</small></div>${sw(g)}</div>`;
+const fmtB=b=>b>=1e12?(b/1e12).toFixed(1)+" TB":b>=1e9?(b/1e9).toFixed(1)+" GB":Math.round(b/1e6)+" MB";
+const upt=s=>{const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h} h ${m} min`:`${m} min`};
+function renderTW(){
+  $("#side").innerHTML=NAV.map(([id,l])=>`<button class="nv ${T.page===id&&!T.q?"on":""}" data-nav="${id}"><i></i>${l}</button>`).join("");
+  $("#side").querySelectorAll("[data-nav]").forEach(b=>b.onclick=()=>go(b.dataset.nav));
+  const inst=T.page==="install"&&!T.q;$("#inst").hidden=!inst;$("#tw").hidden=inst;
+  if(inst){return render()}
+  const P=$("#tw"),d=M.data,G=d?d.groups:[];
+  if(T.page==="dash"&&!T.q){if(!statTimer){host.send({cmd:"stats"});statTimer=setInterval(()=>{if(T.page==="dash")host.send({cmd:"stats"})},2500)}}
+  if(T.q){const q=T.q.toLowerCase(),r=G.filter(g=>(g.name+" "+g.desc+" "+g.cat).toLowerCase().includes(q));
+    P.innerHTML=`<h1>Results for “${esc(T.q)}”</h1>`+(r.length?`<div class="list">${r.map(grow).join("")}</div>`:`<p class="sub">Nothing found. Try another word.</p>`)}
+  else if(T.page==="dash"){const x=T.stats,y=T.sys,on=G.filter(g=>g.state==="on").length;
+    const card=(k,v,p,sub)=>`<div class="box"><span class="lab">${k}</span><span class="big">${v}</span><div class="bar"><i style="width:${Math.max(0,Math.min(100,p))}%"></i></div><small class="sub" style="font-size:12px">${sub}</small></div>`;
+    const gp=y&&y.gpus&&y.gpus.length?y.gpus[0]:null;
+    P.innerHTML=`<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><h1>Dashboard</h1><p class="sub">${y?esc(y.host):""}${x?" · up "+upt(x.uptime):""}</p></div><div style="display:flex;gap:8px"><button class="btn pri" id="cram">${T.ramBusy?"Clearing…":"Clear RAM"}</button></div></div>
+    <div class="grid g4">${x?card("CPU",x.cpu+"%",x.cpu,y?esc(y.cpu):"")+card("GPU",x.gpu+"%",x.gpu,gp?esc(gp.name):"")+card("RAM",fmtB(x.ramUsed),x.ramUsed/x.ramTotal*100,"of "+fmtB(x.ramTotal)+" · "+x.procs+" processes")+card("DISK C:",fmtB(x.diskUsed),x.diskUsed/x.diskTotal*100,"of "+fmtB(x.diskTotal)+" used"):`<div class="box"><span class="sub">Reading…</span></div>`}</div>
+    <div class="grid g2"><div class="box"><b>This PC</b>${y?[["Windows",y.os+" "+(y.ver||"")+" ("+y.build+")"],["CPU",y.cpu+" · "+y.cores+" cores / "+y.threads+" threads"],...(y.gpus||[]).map(g=>["GPU",g.name+" · driver "+g.drv]),["RAM",y.ram+" GB"],["Disk",(y.disk||"")],["Firmware",(y.fw||"")+(y.secureBoot?" · Secure Boot on":"")+(y.tpm?" · TPM "+y.tpm:"")]].map(([k,v])=>`<div class="kv"><span>${k}</span><span>${esc(v)}</span></div>`).join(""):`<span class="sub">Reading…</span>`}</div>
+    <div class="box"><b>WhatOS</b><div class="kv"><span>Tweaks on</span><span>${d?on+" of "+G.length:"…"}</span></div><div class="kv"><span>Tweak set</span><span>${d?"v"+d.manifest:"…"}</span></div></div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between"><h2>Health check</h2><button class="btn" id="hchk" ${T.hb?"disabled":""}>${T.hb?"Checking…":"Check again"}</button></div>
+    <div class="list">${T.health?T.health.map(c=>`<div class="row"><span class="dot" style="background:${c.ok?"var(--ok)":"var(--warn)"}"></span><div class="t"><b>${esc(c.name)}</b><small>${esc(c.desc)}</small></div><span class="st ${c.ok?"ok":"wn"}">${esc(c.res)}</span>${c.fix==="restart"?`<button class="btn" data-fix="restart">Restart</button>`:""}</div>`).join(""):`<div class="row"><span class="sub">Checking…</span></div>`}</div>`;
+    $("#cram").onclick=()=>{if(T.ramBusy)return;T.ramBusy=true;host.send({cmd:"clearram"});renderTW()};
+    $("#hchk").onclick=()=>{T.hb=true;T.health=null;host.send({cmd:"health"});renderTW()};
+    P.querySelectorAll("[data-fix=restart]").forEach(b=>b.onclick=()=>host.send({cmd:"reboot"}));
   }
-  if(M.tab===1){
-    const x=M.diff;
-    P.innerHTML=`<h1>Updates</h1>`+(!x?`<p class="sub">Checking GitHub for new tweaks…</p>`:x.err?`<p class="sub err">${esc(x.err)}</p><button class="btn" id="rechk" style="align-self:flex-start">Try again</button>`:!x.changes.length?`<p class="sub">You're up to date (tweak set v${x.version}).</p><button class="btn" id="rechk" style="align-self:flex-start">Check again</button>`:`<p class="sub">Tweak set v${x.version} is out. Tweaks you turned off or changed stay as they are.</p><div class="krs">${x.changes.map(c=>`<div class="kr"><span class="kt">${esc(c.name)} <span class="mono">${c.new?"New":"Improved"}</span><small>${esc(c.desc)}</small></span></div>`).join("")}</div><button class="btn pri" id="updgo" style="align-self:flex-start" ${M.busy?"disabled":""}>Update</button>`);
-    const r=$("#rechk");if(r)r.onclick=()=>{M.diff=null;M.checking=true;host.send({cmd:"updcheck"});renderManage()};
-    const u=$("#updgo");if(u)u.onclick=()=>{M.busy=true;host.send({cmd:"updapply"});renderManage()};
+  else if(T.page==="tweaks"||T.page==="perf"){const pg=T.page,list=G.filter(g=>g.page===pg),cats=[...new Set(list.map(g=>g.cat))];
+    if(pg==="tweaks"&&!cats.includes(T.cat)&&T.cat!=="All")T.cat="All";
+    P.innerHTML=`<h1>${pg==="tweaks"?"Tweaks":"Performance"}</h1><p class="sub">Changes apply right away. Some need a restart.</p>`+(!d?`<p class="sub">Reading this PC…</p>`:pg==="tweaks"?`<div class="chips">${["All",...cats].map(c=>`<button class="chip ${T.cat===c?"on":""}" data-c="${esc(c)}">${esc(c)}</button>`).join("")}</div><div class="list">${list.filter(g=>T.cat==="All"||g.cat===T.cat).map(grow).join("")}</div>`:cats.map(c=>`<h2>${esc(c)}</h2><div class="list">${list.filter(g=>g.cat===c).map(grow).join("")}</div>`).join(""));
+    P.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{T.cat=b.dataset.c;renderTW()});
   }
-  if(M.tab===2){
-    P.innerHTML=`<h1>History</h1>`+(d.history.length?`<div class="krs">${d.history.map(h=>`<div class="kr"><span class="kt">${esc(h.name)} <span class="mono">${h.a==="on"?"turned on":h.a==="off"?"turned off":h.a==="update"?"updated":"restored"}</span><small>${esc(h.t)}</small></span></div>`).join("")}</div><button class="btn" id="undo" style="align-self:flex-start" ${M.busy?"disabled":""}>Undo last change</button>`:`<p class="sub">Nothing changed yet.</p>`);
-    const u=$("#undo");if(u)u.onclick=()=>mcall("undo");
+  else if(T.page==="backup"){const x=M.diff;
+    P.innerHTML=`<h1>Backup &amp; history</h1>
+    <div class="grid g2"><div class="box"><b>WhatOS tweak updates</b>${!x?`<span class="sub">Checking GitHub…</span>`:x.err?`<span class="sub err">${esc(x.err)}</span>`:!x.changes.length?`<span class="sub">Up to date (tweak set v${x.version}).</span>`:`<span class="sub">Tweak set v${x.version}: ${x.changes.map(c=>esc(c.name)).join(", ")}. Your own changes stay.</span><button class="btn pri" id="updgo" style="align-self:flex-start" ${M.busy?"disabled":""}>Update</button>`}</div>
+    <div class="box"><b>Back to Windows defaults</b><span class="sub">Turn every tweak off and services back on.</span><button class="btn" id="reset" style="align-self:flex-start;color:var(--danger)" ${M.busy?"disabled":""}>${M.sure?"Click again to confirm":"Reset everything"}</button></div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between"><h2>History</h2>${d&&d.history.length?`<button class="btn" id="undo" ${M.busy?"disabled":""}>Undo last change</button>`:""}</div>
+    <div class="list">${d&&d.history.length?d.history.map(h=>`<div class="row"><span class="sub" style="width:130px;flex:0 0 auto;font-size:13px">${esc(h.t)}</span><div class="t"><b>${esc(h.name)}</b></div><span class="st">${h.a==="on"?"turned on":h.a==="off"?"turned off":h.a==="update"?"updated":"restored"}</span></div>`).join(""):`<div class="row"><span class="sub">Nothing changed yet.</span></div>`}</div>`;
+    if(!x&&!M.checking){M.checking=true;host.send({cmd:"updcheck"})}
+    const u=$("#updgo");if(u)u.onclick=()=>{M.busy=true;host.send({cmd:"updapply"});renderTW()};
+    const un=$("#undo");if(un)un.onclick=()=>mcall("undo");
+    $("#reset").onclick=()=>{if(!M.sure){M.sure=true;renderTW();return}M.sure=false;mcall("restore")};
   }
-  if(M.tab===3){
-    P.innerHTML=`<h1>Reinstall or make a USB</h1><p class="sub">Starts the installer: fresh WhatOS on this PC, or a USB stick for another PC.</p><button class="btn pri" id="toinst" style="align-self:flex-start">Open installer</button><h1 style="margin-top:28px">Remove WhatOS</h1><p class="sub">Turns every tweak back to the Windows default and removes this app. Apps you installed stay.</p><button class="btn" id="unin" style="align-self:flex-start;color:var(--danger)" ${M.busy?"disabled":""}>Restore Windows defaults and remove</button>`;
-    $("#toinst").onclick=()=>{S.mode="install";S.p=0;render()};
-    $("#unin").onclick=()=>{if(!M.sure){M.sure=true;$("#unin").textContent="Click again to confirm";return}M.busy=true;host.send({cmd:"uninstall"});renderManage()};
-  }
-  P.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const [a,id]=b.dataset.a.split(":");mcall(a,id)});
+  P.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{const g=G.find(x=>x.id===b.dataset.g);mcall(g.state==="on"?"revert":"apply",g.id)});
 }
 function render(){
-  if(S.mode==="manage")return renderManage();
   const p=PAGES[S.p],r=railOf(p);
   $("#rail").innerHTML=RAIL.map((n,i)=>`<div class="rs ${i===r?'on':i<r?'done':''}"><span class="n">${i<r?'✓':i+1}</span><span class="l">${n}</span></div>`).join("");
   const P=$("#page");$("#hint").textContent="";$("#back").hidden=p==="welcome"||p==="install";$("#next").hidden=p==="install";
@@ -163,10 +211,13 @@ function failed(msg){
 }
 window.chrome.webview.addEventListener("message",e=>{const m=e.data;
   if(m.type==="last"){S.last=m.picks;if(PAGES[S.p]==="welcome")render()}
-  if(m.type==="info"){S.info=m.info;S.vssBusy=false;if(m.info.whatos&&!S.mode){S.mode="manage";host.send({cmd:"manage",action:"status"})}render()}
-  if(m.type==="manage"){M.busy=false;if(m.data)M.data=m.data;else if(m.err)alert(m.err);render()}
-  if(m.type==="diff"){M.checking=false;M.diff=m.data||{err:m.err||"Could not check for updates."};render()}
-  if(m.type==="updated"){M.busy=false;M.diff=null;M.data=m.data||M.data;M.tab=0;render()}
+  if(m.type==="info"){S.info=m.info;S.vssBusy=false;renderTW()}
+  if(m.type==="stats"){T.ramBusy=false;if(m.data)T.stats=m.data;if(T.page==="dash"&&!T.q)renderTW()}
+  if(m.type==="sysinfo"){if(m.data)T.sys=m.data;if(T.page==="dash")renderTW()}
+  if(m.type==="health"){T.hb=false;T.health=m.data?[].concat(m.data):[{ok:false,name:"Health check",desc:m.err||"Could not run",res:"Error"}];if(T.page==="dash")renderTW()}
+  if(m.type==="manage"){M.busy=false;if(m.data)M.data=m.data;else if(m.err)alert(m.err);renderTW()}
+  if(m.type==="diff"){M.checking=false;M.diff=m.data||{err:m.err||"Could not check for updates."};renderTW()}
+  if(m.type==="updated"){M.busy=false;M.diff=null;M.data=m.data||M.data;renderTW()}
   if(m.type==="uninstalled"){M.busy=false;$("#hint").textContent="";$("#page").innerHTML=`<h1>WhatOS removed</h1><p class="sub">Windows defaults are back. Restart your PC to finish.</p><div class="fin"><button class="btn pri" id="rb">Restart now</button><button class="btn" id="cl">Later</button></div>`;$("#rb").onclick=()=>host.send({cmd:"reboot"});$("#cl").onclick=()=>host.send({cmd:"close"})}
   if(m.type==="iso"){if(m.path)S.iso=m;render()}
   if(m.type==="ps"){const f=m.line.split("|");if(f[0]==="step")step(+f[1],+f[2],f.slice(3).join("|"));if(f[0]==="done"&&f[1]==="usb"){step(steps().length,0,"");$("#ph").textContent="USB stick ready";$("#pt").textContent="Plug it into any PC, start from it (boot menu key, often F12, F11 or Esc) and pick the drive.";$("#fin").innerHTML='<button class="btn pri" id="cl">Close</button>';$("#cl").onclick=()=>host.send({cmd:"close"})}else if(f[0]==="done"){if(S.rm){$("#ph").textContent="Installer removed";$("#pt").textContent="This PC is back to normal.";$("#fin").innerHTML='<button class="btn pri" id="cl">Close</button>';$("#cl").onclick=()=>host.send({cmd:"close"})}else if(f[1]!=="restart")finished()}if(f[0]==="error")failed(f.slice(1).join("|"))}
@@ -177,9 +228,10 @@ $("#next").onclick=()=>{if(canNext()){S.p++;while(skip(S.p))S.p++;render()}};
 $("#back").onclick=()=>{S.p--;while(skip(S.p))S.p--;render()};
 const skip=i=>S.win==="iso"&&(PAGES[i].startsWith("app")||["edition","defender"].includes(PAGES[i]));
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&document.activeElement===document.body&&!$("#next").disabled&&!$("#next").hidden)$("#next").click()});
-window.addEventListener("resize",()=>{if(PAGES[S.p]!=="install")render()});
+window.addEventListener("resize",()=>{if(T.page==="install"&&PAGES[S.p]!=="install")render()});
+$("#q").addEventListener("input",e=>{T.q=e.target.value.trim();renderTW()});
 $("#title").addEventListener("mousedown",e=>{if(e.button===0&&!e.target.closest("button"))host.send({cmd:e.detail>1?"max":"drag"})});
 $("#wmin").onclick=()=>host.send({cmd:"min"});$("#wmax").onclick=()=>host.send({cmd:"max"});$("#wx").onclick=()=>host.send({cmd:"close"});
-host.send({cmd:"info"});
-render();
+host.send({cmd:"info"});host.send({cmd:"sysinfo"});host.send({cmd:"health"});host.send({cmd:"manage",action:"status"});
+renderTW();
 </script></body></html>

@@ -4,7 +4,10 @@ $ErrorActionPreference = 'Continue'
 $dir = 'C:\ProgramData\WhatOS'
 New-Item -ItemType Directory $dir -Force | Out-Null
 $sf = "$dir\state.json"
-$mf = if ($Manifest) { $Manifest } elseif (Test-Path "$dir\tweaks.json") { "$dir\tweaks.json" } else { Join-Path $PSScriptRoot 'tweaks.json' }
+$mf = if ($Manifest) { $Manifest } else {
+    $b = Join-Path $PSScriptRoot 'tweaks.json'; $i = "$dir\tweaks.json"
+    if ((Test-Path $i) -and (-not (Test-Path $b) -or [int](Get-Content $i -Raw | ConvertFrom-Json).version -ge [int](Get-Content $b -Raw | ConvertFrom-Json).version)) { $i } else { $b }
+}
 $M = Get-Content $mf -Raw | ConvertFrom-Json
 $hpScheme = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c'
 $balanced = '381b4222-f694-41f0-9685-ff5bb260df2e'
@@ -18,6 +21,8 @@ $pw = @(
     @('7516b95f-f776-4464-8c53-06167f40cc99', 'aded5e82-b909-4619-9949-f5d71dac0bcb', 0),
     @('7516b95f-f776-4464-8c53-06167f40cc99', 'f1fbfde2-a960-4165-9f88-50667911ce96', 0))
 
+$classic = 'HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32'
+$ramMenu = 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Classes\DesktopBackground\Shell\WhatOSClearRAM'
 function RegPath($r) { 'Registry::' + ($r -replace '^HKLM\\', 'HKEY_LOCAL_MACHINE\' -replace '^HKCU\\', 'HKEY_CURRENT_USER\') }
 function Norm($v) { if ($null -eq $v) { return $null }; if ($v -is [int] -or $v -is [long] -or $v -is [uint32]) { $x = [long]$v; if ($x -lt 0) { $x += 4294967296 }; return [string]$x }; [string]$v }
 function Get-Op($o) {
@@ -28,6 +33,9 @@ function Get-Op($o) {
         'dyntick' { if ((bcdedit /enum '{current}' | Out-String) -match 'disabledynamictick\s+Yes') { 'on' } else { 'off' } }
         'hiber' { if ((Get-ItemPropertyValue HKLM:\SYSTEM\CurrentControlSet\Control\Power HibernateEnabled -EA 0) -eq 0) { 'on' } else { 'off' } }
         'reserved' { if ((Get-ItemPropertyValue HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\ReserveManager ShippedWithReserves -EA 0) -eq 0) { 'on' } else { 'off' } }
+        'classic' { if (Test-Path $classic) { 'on' } else { 'off' } }
+        'clearram' { if (-not (Test-Path 'C:\Program Files\WhatOS\WhatOSRam.exe')) { 'n/a' } elseif (Test-Path $ramMenu) { 'on' } else { 'off' } }
+        'memcomp' { if ((Get-MMAgent).MemoryCompression) { 'off' } else { 'on' } }
     }
 }
 function Target($o, $on) {
@@ -68,6 +76,9 @@ function Set-Op($o, $on) {
         'dyntick' { if ($on) { bcdedit /set disabledynamictick yes | Out-Null } else { bcdedit /deletevalue disabledynamictick | Out-Null } }
         'hiber' { if ($on) { powercfg /h off } else { powercfg /h on } }
         'reserved' { Set-ItemProperty HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\ReserveManager ShippedWithReserves $(if ($on) { 0 } else { 1 }) -Type DWord -EA 0; Start-Process dism.exe "/Online /Set-ReservedStorageState /State:$(if ($on) { 'Disabled' } else { 'Enabled' })" -WindowStyle Hidden }
+        'classic' { if ($on) { New-Item $classic -Force | Out-Null; Set-ItemProperty $classic '(default)' '' } else { Remove-Item (Split-Path $classic) -Recurse -Force -EA 0 } }
+        'clearram' { if ($on) { New-Item "$ramMenu\command" -Force | Out-Null; Set-ItemProperty $ramMenu MUIVerb 'Clear RAM'; Set-ItemProperty $ramMenu Icon 'C:\Program Files\WhatOS\WhatOSRam.exe,0'; Set-ItemProperty "$ramMenu\command" '(default)' '"C:\Program Files\WhatOS\WhatOSRam.exe"' } else { Remove-Item $ramMenu -Recurse -Force -EA 0 } }
+        'memcomp' { if ($on) { Disable-MMAgent -MemoryCompression -EA 0 } else { Enable-MMAgent -MemoryCompression -EA 0 } }
     }
 }
 function GState($g) {
@@ -105,7 +116,7 @@ function Status($s) {
         $st = GState $g
         $mine = $s.applied -contains $g.id
         if ($mine -and $st -ne 'on' -and $st -ne 'n/a') { $st = 'yours' }
-        [pscustomobject]@{ id = $g.id; name = $g.name; desc = $g.desc; cat = $g.cat; expert = [bool]$g.expert; state = $st }
+        [pscustomobject]@{ id = $g.id; name = $g.name; desc = $g.desc; cat = $g.cat; page = $g.page; level = $g.level; expert = [bool]$g.expert; state = $st }
     }
     [pscustomobject]@{ version = $s.version; manifest = $M.version; groups = @($list); history = @($s.history | select -First 30 | select t, a, id, name) }
 }

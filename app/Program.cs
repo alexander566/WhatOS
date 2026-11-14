@@ -124,10 +124,10 @@ namespace WhatOS
 
         public MainForm()
         {
-            Text = "WhatOS Installer";
+            Text = "WhatOS";
             FormBorderStyle = FormBorderStyle.None;
             BackColor = Color.FromArgb(18, 24, 33);
-            ClientSize = new Size(1000, 640);
+            ClientSize = new Size(1180, 760);
             MinimumSize = new Size(860, 560);
             Padding = new Padding(5);
             Resize += (s, e) => Padding = new Padding(WindowState == FormWindowState.Maximized ? 0 : 5);
@@ -217,6 +217,10 @@ namespace WhatOS
                     case "prepare": Prepare(m["picks"] as Dictionary<string, object>); break;
                     case "restart": RunPs("finish.ps1", "-Action restart", false); break;
                     case "cancel": RunPs("finish.ps1", "-Action cancel", true); break;
+                    case "stats": Task.Run(() => { try { Send(new { type = "stats", data = Stats() }); } catch (Exception ex) { Send(new { type = "stats", err = ex.Message }); } }); break;
+                    case "sysinfo": Task.Run(() => { try { Send(new { type = "sysinfo", data = SysInfo() }); } catch (Exception ex) { Send(new { type = "sysinfo", err = ex.Message }); } }); break;
+                    case "health": Task.Run(() => { try { Send(new { type = "health", data = Health() }); } catch (Exception ex) { Send(new { type = "health", err = ex.Message }); } }); break;
+                    case "clearram": Task.Run(() => { try { var r = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "WhatOSRam.exe"); if (!File.Exists(r)) r = @"C:\Program Files\WhatOS\WhatOSRam.exe"; if (File.Exists(r)) Process.Start(r)?.WaitForExit(15000); Send(new { type = "stats", data = Stats() }); } catch { } }); break;
                     case "manage": { var a = m["action"] as string; var id = m.ContainsKey("id") ? m["id"] as string : ""; Task.Run(() => { var o = Manage("-Action " + a + " -Id \"" + id + "\""); Send(o != null ? (object)new { type = "manage", data = o } : new { type = "manage", err = "WhatOS could not change this setting." }); }); break; }
                     case "updcheck": Task.Run(() => { try { var rf = Path.Combine(Program.Work, "remote.json"); using (var w = new System.Net.WebClient()) { System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12; w.DownloadFile(ManifestUrl, rf); } var o = Manage("-Action diff -Manifest \"" + rf + "\""); Send(new { type = "diff", data = o }); } catch (Exception ex) { Send(new { type = "diff", err = "Could not check for updates: " + ex.Message }); } }); break;
                     case "updapply": Task.Run(() => { var o = Manage("-Action update -Manifest \"" + Path.Combine(Program.Work, "remote.json") + "\""); Send(new { type = "updated", data = o }); }); break;
@@ -263,6 +267,70 @@ Start-Process cmd -ArgumentList '/c ping -n 4 127.0.0.1 >nul & rd /s /q ""C:\Pro
             var last = o.Split('\n').Select(x => x.Trim()).LastOrDefault(x => x.StartsWith("{"));
             return last == null ? null : json.DeserializeObject(last);
         }
+
+        static PerformanceCounter cpuC;
+        object Stats()
+        {
+            if (cpuC == null) { cpuC = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total"); cpuC.NextValue(); System.Threading.Thread.Sleep(300); }
+            double cpu = Math.Min(100, cpuC.NextValue());
+            var ms = new MEMORYSTATUSEX(); ms.dwLength = (uint)System.Runtime.InteropServices.Marshal.SizeOf(ms); GlobalMemoryStatusEx(ref ms);
+            double gpu = 0;
+            try
+            {
+                var cat = new PerformanceCounterCategory("GPU Engine");
+                var per = new Dictionary<string, double>();
+                foreach (var n in cat.GetInstanceNames().Where(n => n.Contains("engtype_3D")))
+                    using (var c = new PerformanceCounter("GPU Engine", "Utilization Percentage", n)) { c.NextValue(); }
+                System.Threading.Thread.Sleep(250);
+                foreach (var n in cat.GetInstanceNames().Where(n => n.Contains("engtype_3D")))
+                    using (var c = new PerformanceCounter("GPU Engine", "Utilization Percentage", n)) gpu += c.NextValue();
+            }
+            catch { }
+            var d = new DriveInfo("C");
+            return new
+            {
+                cpu = Math.Round(cpu), gpu = Math.Round(Math.Min(100, gpu)),
+                ramUsed = (double)(ms.ullTotalPhys - ms.ullAvailPhys), ramTotal = (double)ms.ullTotalPhys,
+                diskUsed = (double)(d.TotalSize - d.AvailableFreeSpace), diskTotal = (double)d.TotalSize,
+                procs = Process.GetProcesses().Length, uptime = GetTickCount64() / 1000
+            };
+        }
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        struct MEMORYSTATUSEX { public uint dwLength, dwMemoryLoad; public ulong ullTotalPhys, ullAvailPhys, ullTotalPageFile, ullAvailPageFile, ullTotalVirtual, ullAvailVirtual, ullAvailExtendedVirtual; }
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")] static extern bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX m);
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")] static extern ulong GetTickCount64();
+
+        object SysInfo() => json.DeserializeObject(Ps(@"
+$os=Get-CimInstance Win32_OperatingSystem; $cpu=Get-CimInstance Win32_Processor | select -First 1
+$g=@(Get-CimInstance Win32_VideoController | ? { $_.PNPDeviceID -match '^PCI' } | % { [pscustomobject]@{ name=$_.Name; drv=$_.DriverVersion } })
+$dk=Get-PhysicalDisk | ? { $_.DeviceId -eq ((Get-Partition -DriveLetter C).DiskNumber) } | select -First 1
+$sb=try{Confirm-SecureBootUEFI -EA Stop}catch{$null}; $tpm=try{(Get-CimInstance -Namespace root\cimv2\security\microsofttpm Win32_Tpm -EA Stop).SpecVersion.Split(',')[0]}catch{''}
+[pscustomobject]@{ host=$env:COMPUTERNAME; os=($os.Caption -replace 'Microsoft ',''); ver=(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').DisplayVersion; build=""$($os.BuildNumber).$((Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').UBR)""
+ cpu=($cpu.Name -replace '\s+',' ').Trim(); cores=$cpu.NumberOfCores; threads=$cpu.NumberOfLogicalProcessors; gpus=$g; ram=[math]::Round($os.TotalVisibleMemorySize/1MB)
+ disk=$dk.FriendlyName; diskType=[string]$dk.MediaType; fw=$env:firmware_type; secureBoot=$sb; tpm=$tpm } | ConvertTo-Json -Compress -Depth 3"));
+
+        object Health() => json.DeserializeObject(Ps(@"
+$r=@()
+function A($ok,$n,$d,$v,$fix){ $script:r+=[pscustomobject]@{ ok=$ok; name=$n; desc=$d; res=$v; fix=$fix } }
+$v=Get-CimInstance Win32_VideoController | ? { $_.PNPDeviceID -match 'VEN_10DE' } | select -First 1
+if($v){ try{
+ $want=$v.Name -replace '^NVIDIA ',''; $x=[xml](Invoke-WebRequest 'https://www.nvidia.com/Download/API/lookupValueSearch.aspx?TypeID=3' -UseBasicParsing -UserAgent 'Mozilla/5.0' -TimeoutSec 20).Content
+ $c=@($x.LookupValueSearch.LookupValues.LookupValue | ? { ($_.Name -replace '^NVIDIA ','') -eq $want })[0]
+ $l=(Invoke-RestMethod ""https://gfwsl.geforce.com/services_toolkit/services/com/nvidia/services/AjaxDriverService.php?func=DriverManualLookup&psid=$($c.ParentID)&pfid=$($c.Value)&osID=57&languageCode=1033&isWHQL=1&dch=1&sort1=0&numberOfResults=1"" -UserAgent 'Mozilla/5.0' -TimeoutSec 20).IDS[0].downloadInfo.Version
+ $h=(($v.DriverVersion -split '\.')[2..3] -join '') -replace '^.*(\d{5})$','$1'; $hv=$h.Substring(0,3)+'.'+$h.Substring(3)
+ if([double]$l -gt [double]$hv){ A $false 'Graphics driver' ""$($v.Name): $hv installed, $l is out"" 'Update available' 'nvidia' } else { A $true 'Graphics driver' ""$($v.Name) $hv is the newest"" 'Up to date' '' } } catch { A $true 'Graphics driver' $v.Name 'Could not check' '' } }
+$p=(Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') -or (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')
+if($p){ A $false 'Restart needed' 'Windows finished an update and wants a restart' 'Pending' 'restart' } else { A $true 'Restart needed' 'Nothing is waiting for a restart' 'No' '' }
+$sb=try{Confirm-SecureBootUEFI -EA Stop}catch{$null}; A ([bool]$sb) 'Secure Boot' 'Some anti-cheat games need it' $(if($sb){'On'}elseif($null -eq $sb){'Not supported'}else{'Off'}) ''
+$t=try{Get-Tpm -EA Stop}catch{$null}; A ([bool]$t.TpmReady) 'TPM' 'Needed by Windows 11 and some games' $(if($t.TpmPresent){'Ready'}else{'Not found'}) ''
+$dk=Get-PhysicalDisk | ? { $_.DeviceId -eq ((Get-Partition -DriveLetter C).DiskNumber) } | select -First 1; $w=($dk | Get-StorageReliabilityCounter -EA 0).Wear
+A ($dk.HealthStatus -eq 'Healthy') 'Disk health' ""$($dk.FriendlyName)$(if($w -ne $null){"" · $(100-$w)% life left""})"" ([string]$dk.HealthStatus) ''
+$act=@(Get-CimInstance SoftwareLicensingProduct -Filter ""ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' and PartialProductKey is not null"" -EA 0 | ? LicenseStatus -eq 1).Count -gt 0
+A $act 'Windows activation' (Get-CimInstance Win32_OperatingSystem).Caption $(if($act){'Activated'}else{'Not activated'}) ''
+$pg=try{(Test-Connection 1.1.1.1 -Count 3 -EA Stop | measure ResponseTime -Average).Average}catch{$null}
+A ($null -ne $pg) 'Internet' 'Ping to 1.1.1.1' $(if($null -ne $pg){""$([int]$pg) ms""}else{'No connection'}) ''
+$f=(Get-Volume C).SizeRemaining; A ($f -gt 20GB) 'Free space on C:' ""$([math]::Round($f/1GB)) GB free"" $(if($f -gt 20GB){'Good'}else{'Low'}) 'clean'
+@($r) | ConvertTo-Json -Compress -Depth 3"));
 
         static string Ps(string script)
         {
