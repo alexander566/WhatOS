@@ -6,7 +6,7 @@
 html,body{height:100%}
 body{margin:0;padding:0;overflow:hidden;user-select:none}
 .app{max-width:none;height:100vh;border:0;border-radius:0;box-shadow:none;grid-template-rows:auto 1fr}
-.title{padding:0 0 0 16px;height:40px}.wb{display:flex;margin-left:auto;align-self:stretch}.wb button{width:46px;border:0;background:transparent;color:var(--muted);cursor:default;display:grid;place-items:center}.wb button:hover{background:var(--panel);color:var(--ink)}.wb button.x:hover{background:#C42B1C;color:#fff}
+.title{padding:0 0 0 16px;height:40px}.ver{font-size:12px;color:var(--muted);opacity:.8}#upd button{font:inherit;font-size:12px;padding:3px 10px;border-radius:6px;border:0;background:var(--accent);color:var(--accent-ink);cursor:pointer}#upd span{font-size:12px;color:var(--ok)}.wb{display:flex;margin-left:auto;align-self:stretch}.wb button{width:46px;border:0;background:transparent;color:var(--muted);cursor:default;display:grid;place-items:center}.wb button:hover{background:var(--panel);color:var(--ink)}.wb button.x:hover{background:#C42B1C;color:#fff}
 
 .brand{display:flex;align-items:center;gap:9px;padding:0 10px 18px;font-family:var(--display);font-weight:600;font-size:16px}
 .card[disabled]{opacity:.45;cursor:not-allowed}
@@ -214,6 +214,7 @@ function failed(msg){
 }
 window.chrome.webview.addEventListener("message",e=>{const m=e.data;
   if(m.type==="last"){S.last=m.picks;if(PAGES[S.p]==="welcome")render()}
+  if(m.type==="selfupd"){const u=$("#upd");if(m.updated){u.innerHTML=`<span>Updated to ${esc(m.updated)}</span>`;setTimeout(()=>{if(u.querySelector("span"))u.innerHTML=""},10000)}if(m.ready){u.innerHTML=`<button id="updrs">${esc(m.ready)} ready · Restart</button>`;$("#updrs").onclick=()=>host.send({cmd:"selfrestart"})}}
   if(m.type==="info"){S.info=m.info;S.vssBusy=false;renderTW()}
   if(m.type==="stats"){const rb=T.ramBusy;T.ramBusy=false;if(m.data)T.stats=m.data;if(T.page==="dash"&&!T.q){if(!rb&&m.data&&document.querySelector("#tw [data-k=CPU]"))paintStats();else renderTW()}}
   if(m.type==="sysinfo"){if(m.data)T.sys=m.data;if(T.page==="dash")renderTW()}
@@ -237,6 +238,6 @@ window.addEventListener("resize",()=>{if(T.page==="install"&&PAGES[S.p]!=="insta
 $("#q").addEventListener("input",e=>{T.q=e.target.value.trim();renderTW()});
 $("#title").addEventListener("mousedown",e=>{if(e.button===0&&!e.target.closest("button"))host.send({cmd:e.detail>1?"max":"drag"})});
 $("#wmin").onclick=()=>host.send({cmd:"min"});$("#wmax").onclick=()=>host.send({cmd:"max"});$("#wx").onclick=()=>host.send({cmd:"close"});
-host.send({cmd:"manage",action:"status"});host.send({cmd:"sysinfo"});host.send({cmd:"health"});
+host.send({cmd:"manage",action:"status"});host.send({cmd:"sysinfo"});host.send({cmd:"health"});setTimeout(()=>host.send({cmd:"selfupd"}),3000);
 renderTW();
 </script></body></html>

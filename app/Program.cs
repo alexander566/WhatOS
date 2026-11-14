@@ -18,34 +18,51 @@ namespace WhatOS
 
         public static int StartTab;
 
-        static bool SelfUpdate(string[] args) => Task.Run(() => SelfUpdateCore(args)).Result;
+        public static string[] Args = new string[0];
+        public static Version Ver => Assembly.GetExecutingAssembly().GetName().Version;
+        public static string VerText => Ver.Major == 0 && Ver.Minor == 1 && Ver.Build == 0 ? "dev" : "v" + Ver.Major + "." + Ver.Minor + "." + Ver.Build;
 
-        static bool SelfUpdateCore(string[] args)
+        public static bool ApplyPending()
         {
             var exe = Application.ExecutablePath;
             try { File.Delete(exe + ".old"); } catch { }
-            var cur = Assembly.GetExecutingAssembly().GetName().Version;
-            if (cur.Major == 0 && cur.Minor == 1 && cur.Build == 0) return false;
+            var n = exe + ".new";
+            try
+            {
+                if (!File.Exists(n)) return false;
+                if (new FileInfo(n).Length < 500000) { File.Delete(n); return false; }
+                File.Move(exe, exe + ".old");
+                File.Move(n, exe);
+                Process.Start(new ProcessStartInfo(exe, string.Join(" ", Args.Select(x => "\"" + x + "\""))) { UseShellExecute = false });
+                return true;
+            }
+            catch { try { if (!File.Exists(exe) && File.Exists(exe + ".old")) File.Move(exe + ".old", exe); } catch { } return false; }
+        }
+
+        public static string FetchUpdate()
+        {
+            var exe = Application.ExecutablePath;
+            if (VerText == "dev") return null;
             try
             {
                 System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
                 var rq = (System.Net.HttpWebRequest)System.Net.WebRequest.Create("https://api.github.com/repos/alexander566/WhatOS/releases/latest");
-                rq.UserAgent = "WhatOS"; rq.Timeout = 5000;
+                rq.UserAgent = "WhatOS"; rq.Timeout = 10000;
                 string body;
                 using (var rs = rq.GetResponse()) using (var sr = new StreamReader(rs.GetResponseStream())) body = sr.ReadToEnd();
                 var d = (Dictionary<string, object>)new System.Web.Script.Serialization.JavaScriptSerializer().DeserializeObject(body);
-                if (!Version.TryParse(((string)d["tag_name"]).TrimStart('v'), out var latest) || latest <= new Version(cur.Major, cur.Minor, cur.Build)) return false;
+                var tag = (string)d["tag_name"];
+                if (!Version.TryParse(tag.TrimStart('v'), out var latest) || latest <= new Version(Ver.Major, Ver.Minor, Ver.Build)) return null;
                 string url = null;
                 foreach (Dictionary<string, object> x in (object[])d["assets"]) if ((string)x["name"] == "WhatOS.exe") url = (string)x["browser_download_url"];
-                if (url == null) return false;
-                using (var w = new System.Net.WebClient()) { w.Headers.Add("User-Agent", "WhatOS"); w.DownloadFile(url, exe + ".new"); }
-                if (new FileInfo(exe + ".new").Length < 500000) { File.Delete(exe + ".new"); return false; }
-                File.Move(exe, exe + ".old");
-                File.Move(exe + ".new", exe);
-                Process.Start(new ProcessStartInfo(exe, string.Join(" ", args.Select(x => "\"" + x + "\""))) { UseShellExecute = false });
-                return true;
+                if (url == null) return null;
+                using (var w = new System.Net.WebClient()) { w.Headers.Add("User-Agent", "WhatOS"); w.DownloadFile(url, exe + ".part"); }
+                if (new FileInfo(exe + ".part").Length < 500000) { File.Delete(exe + ".part"); return null; }
+                try { File.Delete(exe + ".new"); } catch { }
+                File.Move(exe + ".part", exe + ".new");
+                return tag;
             }
-            catch { try { if (!File.Exists(exe) && File.Exists(exe + ".old")) File.Move(exe + ".old", exe); } catch { } return false; }
+            catch { try { File.Delete(exe + ".part"); } catch { } return null; }
         }
 
         [STAThread]
@@ -54,7 +71,8 @@ namespace WhatOS
             var a = string.Join(" ", args).ToLowerInvariant();
             StartTab = a.Contains("updates") ? 1 : a.Contains("--uninstall") ? 3 : 0;
             Directory.CreateDirectory(Work);
-            if (SelfUpdate(args)) return;
+            Args = args;
+            if (ApplyPending()) return;
             AppDomain.CurrentDomain.AssemblyResolve += (s, e) =>
             {
                 var n = new AssemblyName(e.Name).Name + ".dll";
@@ -221,6 +239,7 @@ namespace WhatOS
                 r.CopyTo(m);
                 html = html.Replace("LOGO_PNG", "data:image/png;base64," + Convert.ToBase64String(m.ToArray()));
             }
+            html = html.Replace("<span>Tweaker</span>", "<span>Tweaker</span><span class=\"ver\">" + Program.VerText + "</span><span id=\"upd\"></span>");
             html = html.Replace("const M={tab:0,", "const M={tab:" + Program.StartTab + ",");
             c.NavigateToString(html);
         }
@@ -246,6 +265,13 @@ namespace WhatOS
                     case "prepare": Prepare(m["picks"] as Dictionary<string, object>); break;
                     case "restart": RunPs("finish.ps1", "-Action restart", false); break;
                     case "cancel": RunPs("finish.ps1", "-Action cancel", true); break;
+                    case "selfupd": Task.Run(() =>
+                    {
+                        var vf = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WhatOS", "ver.txt");
+                        try { var prev = File.Exists(vf) ? File.ReadAllText(vf).Trim() : null; Directory.CreateDirectory(Path.GetDirectoryName(vf)); File.WriteAllText(vf, Program.VerText); if (prev != null && prev != Program.VerText) Send(new { type = "selfupd", updated = Program.VerText }); } catch { }
+                        var t = Program.FetchUpdate(); if (t != null) Send(new { type = "selfupd", ready = t });
+                    }); break;
+                    case "selfrestart": if (Program.ApplyPending()) Close(); break;
                     case "stats": if (statsBusy || WindowState == FormWindowState.Minimized) break; statsBusy = true; Task.Run(() => { try { try { Send(new { type = "stats", data = Stats() }); } catch (Exception ex) { Send(new { type = "stats", err = ex.Message }); } } finally { statsBusy = false; } }); break;
                     case "sysinfo": Task.Run(() => SendCached("sysinfo", SysInfo)); break;
                     case "health": Task.Run(() => SendCached("health", Health)); break;
