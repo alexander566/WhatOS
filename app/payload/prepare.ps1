@@ -126,7 +126,10 @@ if ($usb) {
     P 1 100 "USB stick ready ($B $W)"
 } else {
     $sup = Get-PartitionSupportedSize -DriveLetter C
-    if ($c.Size - $sup.SizeMin -lt $need + 2GB) { Fail ("Not enough free space on C:. Free up {0:N1} GB and try again." -f (($need + 2GB - ($c.Size - $sup.SizeMin)) / 1GB)) }
+    if ($c.Size - $sup.SizeMin -lt $need + 2GB) {
+        if ((Get-Volume C).SizeRemaining -gt $need + 2GB) { Fail ("Windows can only make {0:N1} GB free on C: right now because of files it can't move (restore points, page file). Restart the PC and try again, or use a USB stick." -f (($c.Size - $sup.SizeMin) / 1GB)) }
+        Fail ("Not enough free space on C:. Free up {0:N1} GB and try again." -f (($need + 2GB - ($c.Size - $sup.SizeMin)) / 1GB))
+    }
     $serial = (Get-PhysicalDisk | ? { $_.DeviceId -eq "$($disk.Number)" }).SerialNumber
     if (-not $serial) { $serial = $disk.SerialNumber }
     L "disk $($disk.Number) serial '$serial' C part $($c.PartitionNumber) efi $($efi.PartitionNumber)"

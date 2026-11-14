@@ -166,6 +166,7 @@ namespace WhatOS
             {
                 switch (cmd)
                 {
+                    case "freevss": Task.Run(() => { try { Ps("vssadmin delete shadows /for=C: /all /quiet | Out-Null"); Send(new { type = "info", info = Info() }); } catch (Exception ex) { Send(new { type = "error", msg = "Could not delete restore points: " + ex.Message }); } }); break;
                     case "info": Task.Run(() => { try { var lp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WhatOS", "last.json"); if (File.Exists(lp)) Send(new { type = "last", picks = json.DeserializeObject(File.ReadAllText(lp)) }); Send(new { type = "info", info = Info() }); } catch (Exception ex) { Send(new { type = "error", msg = "Could not read this PC: " + ex.Message }); } }); break;
                     case "browseIso": BrowseIso(); break;
                     case "prepare": Prepare(m["picks"] as Dictionary<string, object>); break;
@@ -250,7 +251,7 @@ $parts=@(Get-Partition -DiskNumber $d.Number | ?{ $_.Type -in 'Basic','IFS' } | 
  edition=$(if($os.Caption -match 'Pro'){'Pro'}else{'Home'})
  uefi=($env:firmware_type -eq 'UEFI'); gpt=($d.PartitionStyle -eq 'GPT')
  disk=$d.FriendlyName; diskSize=$d.Size
- cSize=$c.Size; cFree=$v.SizeRemaining; cMin=$max
+ cSize=$c.Size; cFree=$v.SizeRemaining; cMin=$max; vss=@(Get-CimInstance Win32_ShadowCopy -EA 0).Count
  bitlocker=$bl; parts=$parts; usbs=$usbs
  whatos=((Test-Path 'C:\ProgramData\WhatOS\state.json') -or (Test-Path 'C:\Windows\WhatOS\tweaks.json'))
 } | ConvertTo-Json -Compress -Depth 4");
