@@ -95,8 +95,37 @@ namespace WhatOS
         readonly JavaScriptSerializer json = new JavaScriptSerializer();
         Process job;
 
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        struct RECT { public int L, T, R, B; }
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        struct MINMAXINFO { public int ResX, ResY, MaxSizeX, MaxSizeY, MaxPosX, MaxPosY, MinTrackX, MinTrackY, MaxTrackX, MaxTrackY; }
+        [System.Runtime.InteropServices.DllImport("user32.dll")] static extern int GetSystemMetrics(int i);
+
         protected override void WndProc(ref Message m)
         {
+            if (m.Msg == 0x24)
+            {
+                var sc = Screen.FromHandle(Handle); var wa = sc.WorkingArea; var sb = sc.Bounds;
+                var mm = (MINMAXINFO)System.Runtime.InteropServices.Marshal.PtrToStructure(m.LParam, typeof(MINMAXINFO));
+                int f = GetSystemMetrics(32) + GetSystemMetrics(92);
+                mm.MaxPosX = wa.Left - sb.Left - f; mm.MaxPosY = wa.Top - sb.Top - f; mm.MaxSizeX = wa.Width + 2 * f; mm.MaxSizeY = wa.Height + 2 * f;
+                mm.MinTrackX = MinimumSize.Width; mm.MinTrackY = MinimumSize.Height;
+                System.Runtime.InteropServices.Marshal.StructureToPtr(mm, m.LParam, false);
+                m.Result = IntPtr.Zero;
+                return;
+            }
+            if (m.Msg == 0x83 && m.WParam != IntPtr.Zero)
+            {
+                if (WindowState == FormWindowState.Maximized)
+                {
+                    var rc = (RECT)System.Runtime.InteropServices.Marshal.PtrToStructure(m.LParam, typeof(RECT));
+                    int f = GetSystemMetrics(32) + GetSystemMetrics(92);
+                    rc.L += f; rc.T += f; rc.R -= f; rc.B -= f;
+                    System.Runtime.InteropServices.Marshal.StructureToPtr(rc, m.LParam, false);
+                }
+                m.Result = IntPtr.Zero;
+                return;
+            }
             base.WndProc(ref m);
             if (m.Msg != 0x84 || WindowState == FormWindowState.Maximized) return;
             var p = PointToClient(new Point(unchecked((short)(long)m.LParam), unchecked((short)((long)m.LParam >> 16))));
@@ -112,7 +141,7 @@ namespace WhatOS
 
         protected override CreateParams CreateParams
         {
-            get { var p = base.CreateParams; p.ClassStyle |= 0x20000; p.Style |= 0x20000; return p; }
+            get { var p = base.CreateParams; p.ClassStyle |= 0x20000; p.Style |= 0x20000 | 0x40000 | 0x10000 | 0x80000; return p; }
         }
 
         protected override void OnHandleCreated(EventArgs e)
@@ -217,10 +246,10 @@ namespace WhatOS
                     case "prepare": Prepare(m["picks"] as Dictionary<string, object>); break;
                     case "restart": RunPs("finish.ps1", "-Action restart", false); break;
                     case "cancel": RunPs("finish.ps1", "-Action cancel", true); break;
-                    case "stats": Task.Run(() => { try { Send(new { type = "stats", data = Stats() }); } catch (Exception ex) { Send(new { type = "stats", err = ex.Message }); } }); break;
+                    case "stats": if (statsBusy) break; statsBusy = true; Task.Run(() => { try { try { Send(new { type = "stats", data = Stats() }); } catch (Exception ex) { Send(new { type = "stats", err = ex.Message }); } } finally { statsBusy = false; } }); break;
                     case "sysinfo": Task.Run(() => { try { Send(new { type = "sysinfo", data = SysInfo() }); } catch (Exception ex) { Send(new { type = "sysinfo", err = ex.Message }); } }); break;
                     case "health": Task.Run(() => { try { Send(new { type = "health", data = Health() }); } catch (Exception ex) { Send(new { type = "health", err = ex.Message }); } }); break;
-                    case "clearram": Task.Run(() => { try { var r = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "WhatOSRam.exe"); if (!File.Exists(r)) r = @"C:\Program Files\WhatOS\WhatOSRam.exe"; if (File.Exists(r)) Process.Start(r)?.WaitForExit(15000); Send(new { type = "stats", data = Stats() }); } catch { } }); break;
+                    case "clearram": Task.Run(() => { try { var r = @"C:\Program Files\WhatOS\WhatOSRam.exe"; if (!File.Exists(r)) { r = Path.Combine(Program.Work, "WhatOSRam.exe"); Program.Extract("payload.WhatOSRam.exe", r); } if (File.Exists(r)) Process.Start(r)?.WaitForExit(15000); Send(new { type = "stats", data = Stats() }); } catch { } }); break;
                     case "manage": { var a = m["action"] as string; var id = m.ContainsKey("id") ? m["id"] as string : ""; Task.Run(() => { var o = Manage("-Action " + a + " -Id \"" + id + "\""); Send(o != null ? (object)new { type = "manage", data = o } : new { type = "manage", err = "WhatOS could not change this setting." }); }); break; }
                     case "updcheck": Task.Run(() => { try { var rf = Path.Combine(Program.Work, "remote.json"); using (var w = new System.Net.WebClient()) { System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12; w.DownloadFile(ManifestUrl, rf); } var o = Manage("-Action diff -Manifest \"" + rf + "\""); Send(new { type = "diff", data = o }); } catch (Exception ex) { Send(new { type = "diff", err = "Could not check for updates: " + ex.Message }); } }); break;
                     case "updapply": Task.Run(() => { var o = Manage("-Action update -Manifest \"" + Path.Combine(Program.Work, "remote.json") + "\""); Send(new { type = "updated", data = o }); }); break;
@@ -236,7 +265,7 @@ Start-Process cmd -ArgumentList '/c ping -n 4 127.0.0.1 >nul & rd /s /q ""C:\Pro
                     case "reboot": Process.Start(new ProcessStartInfo("shutdown.exe", "/r /t 0") { CreateNoWindow = true, UseShellExecute = false }); break;
                     case "close": Close(); break;
                     case "min": WindowState = FormWindowState.Minimized; break;
-                    case "max": MaximizedBounds = Screen.FromControl(this).WorkingArea; WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized; break;
+                    case "max": WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized; break;
                     case "drag": ReleaseCapture(); SendMessage(Handle, 0xA1, (IntPtr)2, IntPtr.Zero); break;
                 }
             }
@@ -269,6 +298,7 @@ Start-Process cmd -ArgumentList '/c ping -n 4 127.0.0.1 >nul & rd /s /q ""C:\Pro
         }
 
         static PerformanceCounter cpuC;
+        static volatile bool statsBusy;
         object Stats()
         {
             if (cpuC == null) { cpuC = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total"); cpuC.NextValue(); System.Threading.Thread.Sleep(300); }
