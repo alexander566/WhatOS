@@ -299,6 +299,7 @@ Start-Process cmd -ArgumentList '/c ping -n 4 127.0.0.1 >nul & rd /s /q ""C:\Pro
 
         static PerformanceCounter cpuC;
         static volatile bool statsBusy;
+        static PerformanceCounter diskC;
         object Stats()
         {
             if (cpuC == null) { cpuC = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total"); cpuC.NextValue(); System.Threading.Thread.Sleep(300); }
@@ -308,21 +309,31 @@ Start-Process cmd -ArgumentList '/c ping -n 4 127.0.0.1 >nul & rd /s /q ""C:\Pro
             try
             {
                 var cat = new PerformanceCounterCategory("GPU Engine");
+                var a = cat.ReadCategory()["utilization percentage"];
+                System.Threading.Thread.Sleep(400);
+                var b = cat.ReadCategory()["utilization percentage"];
                 var per = new Dictionary<string, double>();
-                foreach (var n in cat.GetInstanceNames().Where(n => n.Contains("engtype_3D")))
-                    using (var c = new PerformanceCounter("GPU Engine", "Utilization Percentage", n)) { c.NextValue(); }
-                System.Threading.Thread.Sleep(250);
-                foreach (var n in cat.GetInstanceNames().Where(n => n.Contains("engtype_3D")))
-                    using (var c = new PerformanceCounter("GPU Engine", "Utilization Percentage", n)) gpu += c.NextValue();
+                foreach (InstanceData x in b.Values)
+                {
+                    if (!a.Contains(x.InstanceName)) continue;
+                    var n = x.InstanceName; int li = n.IndexOf("luid_"), ei = n.IndexOf("engtype_");
+                    if (li < 0 || ei < 0) continue;
+                    var key = n.Substring(li, n.IndexOf("_phys", li) > 0 ? n.IndexOf("_phys", li) - li : 20) + "|" + n.Substring(ei);
+                    var v = CounterSample.Calculate(a[n].Sample, x.Sample);
+                    per[key] = (per.TryGetValue(key, out var o) ? o : 0) + v;
+                }
+                if (per.Count > 0) gpu = per.Values.Max();
             }
             catch { }
+            if (diskC == null) { diskC = new PerformanceCounter("PhysicalDisk", "% Idle Time", "_Total"); diskC.NextValue(); System.Threading.Thread.Sleep(200); }
+            double disk = Math.Max(0, Math.Min(100, 100 - diskC.NextValue()));
             var d = new DriveInfo("C");
             return new
             {
                 cpu = Math.Round(cpu), gpu = Math.Round(Math.Min(100, gpu)),
                 ramUsed = (double)(ms.ullTotalPhys - ms.ullAvailPhys), ramTotal = (double)ms.ullTotalPhys,
                 diskUsed = (double)(d.TotalSize - d.AvailableFreeSpace), diskTotal = (double)d.TotalSize,
-                procs = Process.GetProcesses().Length, uptime = GetTickCount64() / 1000
+                disk = Math.Round(disk), procs = Process.GetProcesses().Length, uptime = GetTickCount64() / 1000
             };
         }
         [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
