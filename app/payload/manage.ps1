@@ -23,6 +23,8 @@ $pw = @(
 
 $classic = 'HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32'
 $ramMenu = 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Classes\DesktopBackground\Shell\WhatOSClearRAM'
+$ifk = 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces'
+function NicKeys { @(Get-ChildItem $ifk -EA 0 | ? { $p = Get-ItemProperty $_.PSPath -EA 0; $p.DhcpIPAddress -or ($p.IPAddress -and "$($p.IPAddress)".Trim()) }) }
 function RegPath($r) { 'Registry::' + ($r -replace '^HKLM\\', 'HKEY_LOCAL_MACHINE\' -replace '^HKCU\\', 'HKEY_CURRENT_USER\') }
 function Norm($v) { if ($null -eq $v) { return $null }; if ($v -is [int] -or $v -is [long] -or $v -is [uint32]) { $x = [long]$v; if ($x -lt 0) { $x += 4294967296 }; return [string]$x }; [string]$v }
 function Get-Op($o) {
@@ -36,6 +38,7 @@ function Get-Op($o) {
         'classic' { if (Test-Path $classic) { 'on' } else { 'off' } }
         'clearram' { if (-not (Test-Path 'C:\Program Files\WhatOS\WhatOSRam.exe')) { 'n/a' } elseif (Test-Path $ramMenu) { 'on' } else { 'off' } }
         'memcomp' { if ((Get-MMAgent).MemoryCompression) { 'off' } else { 'on' } }
+        'nagle' { $k = NicKeys; if (-not $k) { 'n/a' } elseif (@($k | ? { (Get-ItemProperty $_.PSPath -EA 0).TcpAckFrequency -ne 1 }).Count -eq 0) { 'on' } else { 'off' } }
     }
 }
 function Target($o, $on) {
@@ -79,6 +82,7 @@ function Set-Op($o, $on) {
         'classic' { if ($on) { New-Item $classic -Force | Out-Null; Set-ItemProperty $classic '(default)' '' } else { Remove-Item (Split-Path $classic) -Recurse -Force -EA 0 } }
         'clearram' { if ($on) { New-Item "$ramMenu\command" -Force | Out-Null; Set-ItemProperty $ramMenu MUIVerb 'Clear RAM'; Set-ItemProperty $ramMenu Icon 'C:\Program Files\WhatOS\WhatOSRam.exe,0'; Set-ItemProperty "$ramMenu\command" '(default)' '"C:\Program Files\WhatOS\WhatOSRam.exe"' } else { Remove-Item $ramMenu -Recurse -Force -EA 0 } }
         'memcomp' { if ($on) { Disable-MMAgent -MemoryCompression -EA 0 } else { Enable-MMAgent -MemoryCompression -EA 0 } }
+        'nagle' { foreach ($k in NicKeys) { if ($on) { Set-ItemProperty $k.PSPath TcpAckFrequency 1 -Type DWord; Set-ItemProperty $k.PSPath TCPNoDelay 1 -Type DWord } else { Remove-ItemProperty $k.PSPath TcpAckFrequency, TCPNoDelay -EA 0 } } }
     }
 }
 function GState($g) {
@@ -116,7 +120,7 @@ function Status($s) {
         $st = GState $g
         $mine = $s.applied -contains $g.id
         if ($mine -and $st -ne 'on' -and $st -ne 'n/a') { $st = 'yours' }
-        [pscustomobject]@{ id = $g.id; name = $g.name; desc = $g.desc; cat = $g.cat; page = $g.page; level = $g.level; expert = [bool]$g.expert; state = $st }
+        [pscustomobject]@{ id = $g.id; name = $g.name; desc = $g.desc; cat = $g.cat; page = $g.page; level = $g.level; rec = [bool]$g.rec; expert = [bool]$g.expert; state = $st }
     }
     [pscustomobject]@{ version = $s.version; manifest = $M.version; groups = @($list); history = @($s.history | select -First 30 | select t, a, id, name) }
 }
@@ -126,6 +130,7 @@ switch ($Action) {
     'status' { }
     'apply' { $g = $M.groups | ? id -eq $Id; if ($g) { Do-Set $S $g $true 'on' } }
     'revert' { $g = $M.groups | ? id -eq $Id; if ($g) { Do-Set $S $g $false 'off' } }
+    'applyset' { foreach ($i in ($Id -split ',')) { $g = $M.groups | ? id -eq $i; if ($g) { Do-Set $S $g $true 'on' } } }
     'undo' {
         $h = @($S.history)[0]
         $g = $M.groups | ? id -eq $h.id

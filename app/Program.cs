@@ -273,6 +273,17 @@ namespace WhatOS
                     }); break;
                     case "selfrestart": if (Program.ApplyPending()) Close(); break;
                     case "gm": { var act = m["act"] as string; var gc = m.ContainsKey("cfg") ? m["cfg"] : null; if (act == "add") { AddGame(); break; } Task.Run(() => { try { Gm(act, gc); } catch (Exception ex) { Send(new { type = "gm", err = ex.Message }); } }); break; }
+                    case "fav":
+                        {
+                            var ff = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WhatOS", "fav.json");
+                            try
+                            {
+                                if (m.ContainsKey("ids")) { Directory.CreateDirectory(Path.GetDirectoryName(ff)); File.WriteAllText(ff, json.Serialize(m["ids"])); }
+                                else Send(new { type = "fav", ids = File.Exists(ff) ? json.DeserializeObject(File.ReadAllText(ff)) : new object[0] });
+                            }
+                            catch { }
+                            break;
+                        }
                     case "stats": if (statsBusy || WindowState == FormWindowState.Minimized) break; statsBusy = true; Task.Run(() => { try { try { Send(new { type = "stats", data = Stats() }); } catch (Exception ex) { Send(new { type = "stats", err = ex.Message }); } } finally { statsBusy = false; } }); break;
                     case "sysinfo": Task.Run(() => SendCached("sysinfo", SysInfo)); break;
                     case "health": Task.Run(() => SendCached("health", Health)); break;

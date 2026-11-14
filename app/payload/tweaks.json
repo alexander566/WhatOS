@@ -1,5 +1,5 @@
 {
- "version": 2,
+ "version": 3,
  "groups": [
   {
    "id": "services",
@@ -184,7 +184,8 @@
     }
    ],
    "page": "perf",
-   "level": "Safe"
+   "level": "Safe",
+   "rec": true
   },
   {
    "id": "power",
@@ -197,7 +198,8 @@
     }
    ],
    "page": "perf",
-   "level": "Safe"
+   "level": "Safe",
+   "rec": true
   },
   {
    "id": "sched",
@@ -221,7 +223,8 @@
     }
    ],
    "page": "perf",
-   "level": "Safe"
+   "level": "Safe",
+   "rec": true
   },
   {
    "id": "prefetch",
@@ -243,7 +246,8 @@
     }
    ],
    "page": "perf",
-   "level": "Safe"
+   "level": "Safe",
+   "rec": true
   },
   {
    "id": "hiber",
@@ -256,7 +260,8 @@
     }
    ],
    "page": "perf",
-   "level": "Safe"
+   "level": "Safe",
+   "rec": true
   },
   {
    "id": "reserved",
@@ -269,7 +274,8 @@
     }
    ],
    "page": "perf",
-   "level": "Safe"
+   "level": "Safe",
+   "rec": true
   },
   {
    "id": "ads",
@@ -342,7 +348,8 @@
     }
    ],
    "page": "tweaks",
-   "level": "Safe"
+   "level": "Safe",
+   "rec": true
   },
   {
    "id": "bgapps",
@@ -357,7 +364,8 @@
     }
    ],
    "page": "perf",
-   "level": "Safe"
+   "level": "Safe",
+   "rec": true
   },
   {
    "id": "delivery",
@@ -372,7 +380,8 @@
     }
    ],
    "page": "tweaks",
-   "level": "Safe"
+   "level": "Safe",
+   "rec": true
   },
   {
    "id": "gamedvr",
@@ -399,7 +408,8 @@
     }
    ],
    "page": "tweaks",
-   "level": "Safe"
+   "level": "Safe",
+   "rec": true
   },
   {
    "id": "updates",
@@ -435,7 +445,8 @@
     }
    ],
    "page": "tweaks",
-   "level": "Advanced"
+   "level": "Advanced",
+   "rec": false
   },
   {
    "id": "smartscreen",
@@ -456,7 +467,8 @@
     }
    ],
    "page": "tweaks",
-   "level": "Advanced"
+   "level": "Advanced",
+   "rec": false
   },
   {
    "id": "mouse",
@@ -487,7 +499,8 @@
     }
    ],
    "page": "tweaks",
-   "level": "Safe"
+   "level": "Safe",
+   "rec": true
   },
   {
    "id": "keys",
@@ -518,7 +531,8 @@
     }
    ],
    "page": "tweaks",
-   "level": "Safe"
+   "level": "Safe",
+   "rec": true
   },
   {
    "id": "startup",
@@ -533,7 +547,8 @@
     }
    ],
    "page": "perf",
-   "level": "Safe"
+   "level": "Safe",
+   "rec": true
   },
   {
    "id": "gpu",
@@ -549,7 +564,8 @@
     }
    ],
    "page": "tweaks",
-   "level": "Safe"
+   "level": "Safe",
+   "rec": true
   },
   {
    "id": "mitig",
@@ -570,7 +586,8 @@
     }
    ],
    "page": "perf",
-   "level": "Expert"
+   "level": "Expert",
+   "rec": false
   },
   {
    "id": "dark",
@@ -592,7 +609,8 @@
      "v": 0,
      "d": 1
     }
-   ]
+   ],
+   "rec": true
   },
   {
    "id": "classic",
@@ -605,7 +623,8 @@
     {
      "ps": "classic"
     }
-   ]
+   ],
+   "rec": true
   },
   {
    "id": "clearram",
@@ -618,7 +637,8 @@
     {
      "ps": "clearram"
     }
-   ]
+   ],
+   "rec": true
   },
   {
    "id": "telemetry",
@@ -633,7 +653,8 @@
      "n": "AllowTelemetry",
      "v": 0
     }
-   ]
+   ],
+   "rec": true
   },
   {
    "id": "adid",
@@ -649,7 +670,8 @@
      "v": 0,
      "d": 1
     }
-   ]
+   ],
+   "rec": true
   },
   {
    "id": "activity",
@@ -669,7 +691,8 @@
      "n": "UploadUserActivities",
      "v": 0
     }
-   ]
+   ],
+   "rec": true
   },
   {
    "id": "location",
@@ -687,7 +710,8 @@
      "v": "Deny",
      "d": "Allow"
     }
-   ]
+   ],
+   "rec": false
   },
   {
    "id": "hags",
@@ -703,7 +727,8 @@
      "n": "HwSchMode",
      "v": 2
     }
-   ]
+   ],
+   "rec": true
   },
   {
    "id": "memcomp",
@@ -717,7 +742,881 @@
     {
      "ps": "memcomp"
     }
-   ]
+   ],
+   "rec": false
+  },
+  {
+   "id": "wingamemode",
+   "name": "Windows Game Mode on",
+   "desc": "Windows gives your game more CPU and holds back updates while you play.",
+   "cat": "Gaming",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\GameBar",
+     "n": "AutoGameModeEnabled",
+     "v": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "gamebarbtn",
+   "name": "Xbox button doesn't open Game Bar",
+   "desc": "Pressing the Xbox button on a controller no longer pops up Game Bar.",
+   "cat": "Gaming",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\GameBar",
+     "n": "UseNexusForGameBarEnabled",
+     "v": 0,
+     "d": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "mmcss",
+   "name": "Games get CPU priority",
+   "desc": "Windows' multimedia scheduler puts games first and keeps less CPU back for background tasks.",
+   "cat": "Gaming",
+   "ops": [
+    {
+     "r": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games",
+     "n": "Priority",
+     "v": 6,
+     "d": 2
+    },
+    {
+     "r": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games",
+     "n": "Scheduling Category",
+     "v": "High",
+     "d": "Medium",
+     "t": "String"
+    },
+    {
+     "r": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games",
+     "n": "SFIO Priority",
+     "v": "High",
+     "d": "Normal",
+     "t": "String"
+    },
+    {
+     "r": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile",
+     "n": "SystemResponsiveness",
+     "v": 10,
+     "d": 20
+    }
+   ],
+   "page": "tweaks",
+   "level": "Advanced",
+   "rec": false
+  },
+  {
+   "id": "fso",
+   "name": "Fullscreen optimizations off",
+   "desc": "Old-style exclusive fullscreen. Can lower input lag in some older games. Newer games work fine either way.",
+   "cat": "Gaming",
+   "ops": [
+    {
+     "r": "HKCU\\System\\GameConfigStore",
+     "n": "GameDVR_FSEBehaviorMode",
+     "v": 2,
+     "d": 0
+    },
+    {
+     "r": "HKCU\\System\\GameConfigStore",
+     "n": "GameDVR_HonorUserFSEBehaviorMode",
+     "v": 1,
+     "d": 0
+    },
+    {
+     "r": "HKCU\\System\\GameConfigStore",
+     "n": "GameDVR_DXGIHonorFSEWindowsCompatible",
+     "v": 1,
+     "d": 0
+    }
+   ],
+   "page": "tweaks",
+   "level": "Advanced",
+   "rec": false
+  },
+  {
+   "id": "priosep",
+   "name": "Foreground app boost",
+   "desc": "The window you're using gets longer CPU time slices than background programs.",
+   "cat": "Gaming",
+   "ops": [
+    {
+     "r": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl",
+     "n": "Win32PrioritySeparation",
+     "v": 38,
+     "d": 2
+    }
+   ],
+   "page": "tweaks",
+   "level": "Advanced",
+   "rec": false
+  },
+  {
+   "id": "tdr",
+   "name": "Longer graphics driver timeout",
+   "desc": "The GPU driver gets 10 seconds instead of 2 before Windows resets it. Fewer 'driver stopped responding' crashes in heavy games.",
+   "cat": "Gaming",
+   "ops": [
+    {
+     "r": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers",
+     "n": "TdrDelay",
+     "v": 10
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": false
+  },
+  {
+   "id": "mpo",
+   "name": "Multiplane overlay off",
+   "desc": "Fixes flicker and stutter on some setups with more than one monitor. Leave it alone if you have no problems.",
+   "cat": "Display",
+   "ops": [
+    {
+     "r": "HKLM\\SOFTWARE\\Microsoft\\Windows\\Dwm",
+     "n": "OverlayTestMode",
+     "v": 5
+    }
+   ],
+   "page": "perf",
+   "level": "Advanced",
+   "rec": false
+  },
+  {
+   "id": "netthrottle",
+   "name": "No network throttling",
+   "desc": "Windows stops slowing down network traffic while music or video plays.",
+   "cat": "Network",
+   "ops": [
+    {
+     "r": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile",
+     "n": "NetworkThrottlingIndex",
+     "v": 4294967295,
+     "d": 10
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "nagle",
+   "name": "Nagle's algorithm off",
+   "desc": "Small game packets are sent right away instead of being bundled. Can lower ping in some online games.",
+   "cat": "Network",
+   "ops": [
+    {
+     "ps": "nagle"
+    }
+   ],
+   "page": "tweaks",
+   "level": "Advanced",
+   "rec": false
+  },
+  {
+   "id": "llmnr",
+   "name": "LLMNR off",
+   "desc": "Turns off an old name lookup that can leak your PC name on public Wi-Fi.",
+   "cat": "Network",
+   "ops": [
+    {
+     "r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient",
+     "n": "EnableMulticast",
+     "v": 0
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "ipv4pref",
+   "name": "Prefer IPv4 over IPv6",
+   "desc": "Fixes slow loading on networks with broken IPv6. Only change this if sites load slowly.",
+   "cat": "Network",
+   "ops": [
+    {
+     "r": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Tcpip6\\Parameters",
+     "n": "DisabledComponents",
+     "v": 32
+    }
+   ],
+   "page": "tweaks",
+   "level": "Advanced",
+   "rec": false
+  },
+  {
+   "id": "recall",
+   "name": "Recall and Click to Do off",
+   "desc": "No AI snapshots of your screen and no Click to Do overlay.",
+   "cat": "Privacy",
+   "ops": [
+    {
+     "r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI",
+     "n": "AllowRecallEnablement",
+     "v": 0
+    },
+    {
+     "r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI",
+     "n": "DisableClickToDo",
+     "v": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "tailored",
+   "name": "Tailored experiences off",
+   "desc": "Microsoft stops using your diagnostic data for tips and ads.",
+   "cat": "Privacy",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Privacy",
+     "n": "TailoredExperiencesWithDiagnosticDataEnabled",
+     "v": 0,
+     "d": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "feedback",
+   "name": "Feedback requests off",
+   "desc": "No 'How likely are you to recommend Windows' pop-ups.",
+   "cat": "Privacy",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\Siuf\\Rules",
+     "n": "NumberOfSIUFInPeriod",
+     "v": 0
+    },
+    {
+     "r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection",
+     "n": "DoNotShowFeedbackNotifications",
+     "v": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "inking",
+   "name": "Typing and inking data off",
+   "desc": "Windows stops collecting what you type and write to 'improve' suggestions.",
+   "cat": "Privacy",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\InputPersonalization",
+     "n": "RestrictImplicitInkCollection",
+     "v": 1,
+     "d": 0
+    },
+    {
+     "r": "HKCU\\Software\\Microsoft\\InputPersonalization",
+     "n": "RestrictImplicitTextCollection",
+     "v": 1,
+     "d": 0
+    },
+    {
+     "r": "HKCU\\Software\\Microsoft\\InputPersonalization\\TrainedDataStore",
+     "n": "HarvestContacts",
+     "v": 0,
+     "d": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "speech",
+   "name": "Online speech recognition off",
+   "desc": "Your voice isn't sent to Microsoft. Voice typing still works offline.",
+   "cat": "Privacy",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\Speech_OneCore\\Settings\\OnlineSpeechPrivacy",
+     "n": "HasAccepted",
+     "v": 0,
+     "d": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "werr",
+   "name": "Error reporting off",
+   "desc": "Crash reports are no longer sent to Microsoft.",
+   "cat": "Privacy",
+   "ops": [
+    {
+     "r": "HKLM\\SOFTWARE\\Microsoft\\Windows\\Windows Error Reporting",
+     "n": "Disabled",
+     "v": 1,
+     "d": 0
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "tracking",
+   "name": "App launch tracking off",
+   "desc": "Windows stops recording which apps you open.",
+   "cat": "Privacy",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+     "n": "Start_TrackProgs",
+     "v": 0,
+     "d": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "lockads",
+   "name": "Lock screen tips off",
+   "desc": "No fun facts, tips or ads on the lock screen.",
+   "cat": "Privacy",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+     "n": "RotatingLockScreenOverlayEnabled",
+     "v": 0,
+     "d": 1
+    },
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+     "n": "SubscribedContent-338387Enabled",
+     "v": 0,
+     "d": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "settingsads",
+   "name": "Suggestions in Settings off",
+   "desc": "No suggested content inside the Settings app.",
+   "cat": "Privacy",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+     "n": "SubscribedContent-338393Enabled",
+     "v": 0,
+     "d": 1
+    },
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+     "n": "SubscribedContent-353694Enabled",
+     "v": 0,
+     "d": 1
+    },
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+     "n": "SubscribedContent-353696Enabled",
+     "v": 0,
+     "d": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "welcome",
+   "name": "'Finish setting up' screens off",
+   "desc": "No 'Let's finish setting up your device' or Windows welcome screens after updates.",
+   "cat": "Privacy",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\UserProfileEngagement",
+     "n": "ScoobeSystemSettingEnabled",
+     "v": 0,
+     "d": 1
+    },
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+     "n": "SubscribedContent-310093Enabled",
+     "v": 0,
+     "d": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "findmy",
+   "name": "Find my device off",
+   "desc": "Your PC's location isn't saved for Find my device. Keep it on for laptops you carry around.",
+   "cat": "Privacy",
+   "ops": [
+    {
+     "r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\FindMyDevice",
+     "n": "AllowFindMyDevice",
+     "v": 0
+    }
+   ],
+   "page": "tweaks",
+   "level": "Advanced",
+   "rec": false
+  },
+  {
+   "id": "fileext",
+   "name": "Show file extensions",
+   "desc": "See .exe, .jpg and so on in file names. Makes fake files easy to spot.",
+   "cat": "Interface",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+     "n": "HideFileExt",
+     "v": 0,
+     "d": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "endtask",
+   "name": "End task in taskbar menu",
+   "desc": "Right-click an app on the taskbar to force close it.",
+   "cat": "Interface",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\\TaskbarDeveloperSettings",
+     "n": "TaskbarEndTask",
+     "v": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "menudelay",
+   "name": "Faster menus",
+   "desc": "Menus open instantly instead of after a short pause.",
+   "cat": "Interface",
+   "ops": [
+    {
+     "r": "HKCU\\Control Panel\\Desktop",
+     "n": "MenuShowDelay",
+     "v": "0",
+     "d": "400",
+     "t": "String"
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "hidden",
+   "name": "Show hidden files",
+   "desc": "See hidden files and folders in File Explorer.",
+   "cat": "Interface",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+     "n": "Hidden",
+     "v": 1,
+     "d": 2
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": false
+  },
+  {
+   "id": "leftbar",
+   "name": "Taskbar on the left",
+   "desc": "Start button and apps sit on the left like Windows 10.",
+   "cat": "Interface",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+     "n": "TaskbarAl",
+     "v": 0,
+     "d": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": false
+  },
+  {
+   "id": "taskview",
+   "name": "Hide Task view button",
+   "desc": "Removes the Task view button from the taskbar.",
+   "cat": "Interface",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+     "n": "ShowTaskViewButton",
+     "v": 0,
+     "d": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": false
+  },
+  {
+   "id": "searchicon",
+   "name": "Search as a small icon",
+   "desc": "The taskbar search box becomes a small icon.",
+   "cat": "Interface",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Search",
+     "n": "SearchboxTaskbarMode",
+     "v": 1,
+     "d": 2
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": false
+  },
+  {
+   "id": "thispc",
+   "name": "File Explorer opens This PC",
+   "desc": "Opens on your drives instead of Home.",
+   "cat": "Interface",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+     "n": "LaunchTo",
+     "v": 1,
+     "d": 2
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": false
+  },
+  {
+   "id": "compact",
+   "name": "Compact File Explorer",
+   "desc": "Less space between files so more fit on screen.",
+   "cat": "Interface",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+     "n": "UseCompactMode",
+     "v": 1,
+     "d": 0
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": false
+  },
+  {
+   "id": "seconds",
+   "name": "Seconds in the clock",
+   "desc": "The taskbar clock shows seconds.",
+   "cat": "Interface",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+     "n": "ShowSecondsInSystemClock",
+     "v": 1,
+     "d": 0
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": false
+  },
+  {
+   "id": "transparency",
+   "name": "Transparency off",
+   "desc": "Solid taskbar and menus. Slightly lighter on old GPUs.",
+   "cat": "Interface",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+     "n": "EnableTransparency",
+     "v": 0,
+     "d": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": false
+  },
+  {
+   "id": "animations",
+   "name": "Window animations off",
+   "desc": "Windows open and minimize instantly.",
+   "cat": "Interface",
+   "ops": [
+    {
+     "r": "HKCU\\Control Panel\\Desktop\\WindowMetrics",
+     "n": "MinAnimate",
+     "v": "0",
+     "d": "1",
+     "t": "String"
+    },
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+     "n": "TaskbarAnimations",
+     "v": 0,
+     "d": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": false
+  },
+  {
+   "id": "nolock",
+   "name": "Skip the lock screen",
+   "desc": "Go straight to the sign-in screen.",
+   "cat": "Interface",
+   "ops": [
+    {
+     "r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Personalization",
+     "n": "NoLockScreen",
+     "v": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": false
+  },
+  {
+   "id": "startsound",
+   "name": "Startup sound off",
+   "desc": "No sound when Windows starts.",
+   "cat": "Interface",
+   "ops": [
+    {
+     "r": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Authentication\\LogonUI\\BootAnimation",
+     "n": "DisableStartupSound",
+     "v": 1,
+     "d": 0
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": false
+  },
+  {
+   "id": "longpaths",
+   "name": "Long file paths",
+   "desc": "Programs can use paths longer than 260 characters. Fixes some install errors.",
+   "cat": "System",
+   "ops": [
+    {
+     "r": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\FileSystem",
+     "n": "LongPathsEnabled",
+     "v": 1,
+     "d": 0
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "lastaccess",
+   "name": "No last-opened timestamps",
+   "desc": "The disk stops writing a timestamp every time a file is read.",
+   "cat": "Disk",
+   "ops": [
+    {
+     "r": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\FileSystem",
+     "n": "NtfsDisableLastAccessUpdate",
+     "v": 2147483649,
+     "d": 2147483650
+    }
+   ],
+   "page": "perf",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "autoreboot",
+   "name": "Show blue screens",
+   "desc": "After a crash, the PC waits on the blue screen so you can read the error instead of restarting at once.",
+   "cat": "System",
+   "ops": [
+    {
+     "r": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\CrashControl",
+     "n": "AutoReboot",
+     "v": 0,
+     "d": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": false
+  },
+  {
+   "id": "maintenance",
+   "name": "Automatic maintenance off",
+   "desc": "Windows stops running disk checks and cleanup in the background at night.",
+   "cat": "Background",
+   "ops": [
+    {
+     "r": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Schedule\\Maintenance",
+     "n": "MaintenanceDisabled",
+     "v": 1
+    }
+   ],
+   "page": "perf",
+   "level": "Advanced",
+   "rec": false
+  },
+  {
+   "id": "wudrivers",
+   "name": "No drivers from Windows Update",
+   "desc": "Windows Update won't replace your graphics or other drivers. Install drivers yourself.",
+   "cat": "System",
+   "ops": [
+    {
+     "r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
+     "n": "ExcludeWUDriversInQualityUpdate",
+     "v": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Advanced",
+   "rec": false
+  },
+  {
+   "id": "indexing",
+   "name": "Search indexing off",
+   "desc": "Stops Windows from scanning your files in the background. Start menu file search gets slower.",
+   "cat": "Background",
+   "ops": [
+    {
+     "s": "WSearch",
+     "v": 4,
+     "d": 2
+    }
+   ],
+   "page": "perf",
+   "level": "Advanced",
+   "rec": false
+  },
+  {
+   "id": "edgebg",
+   "name": "Edge stays closed",
+   "desc": "Microsoft Edge no longer preloads at startup or keeps running after you close it.",
+   "cat": "Background",
+   "ops": [
+    {
+     "r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge",
+     "n": "StartupBoostEnabled",
+     "v": 0
+    },
+    {
+     "r": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge",
+     "n": "BackgroundModeEnabled",
+     "v": 0
+    }
+   ],
+   "page": "perf",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "autoplay",
+   "name": "AutoPlay off",
+   "desc": "USB sticks and discs don't open or run anything by themselves.",
+   "cat": "Security",
+   "ops": [
+    {
+     "r": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\AutoplayHandlers",
+     "n": "DisableAutoplay",
+     "v": 1,
+     "d": 0
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "remoteassist",
+   "name": "Remote Assistance off",
+   "desc": "Nobody can be invited to take control of this PC through Remote Assistance.",
+   "cat": "Security",
+   "ops": [
+    {
+     "r": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Remote Assistance",
+     "n": "fAllowToGetHelp",
+     "v": 0,
+     "d": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Safe",
+   "rec": true
+  },
+  {
+   "id": "uacdim",
+   "name": "No dark screen for admin prompts",
+   "desc": "Admin prompts appear without dimming the whole screen. Still asks every time.",
+   "cat": "Security",
+   "ops": [
+    {
+     "r": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
+     "n": "PromptOnSecureDesktop",
+     "v": 0,
+     "d": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Advanced",
+   "rec": false
+  },
+  {
+   "id": "hvci",
+   "name": "Memory integrity off",
+   "desc": "Can give a few % more FPS on older CPUs. Lowers protection, and some anti-cheat games need it on.",
+   "cat": "Security",
+   "ops": [
+    {
+     "r": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity",
+     "n": "Enabled",
+     "v": 0,
+     "d": 1
+    }
+   ],
+   "page": "tweaks",
+   "level": "Expert",
+   "rec": false
   }
  ]
 }
