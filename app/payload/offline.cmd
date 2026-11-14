@@ -65,6 +65,7 @@ if exist %H%:\whatos\WhatOS.exe mkdir "%T%:\Program Files\WhatOS" 2>nul
 if exist %H%:\whatos\WhatOS.exe copy /y %H%:\whatos\WhatOS.exe "%T%:\Program Files\WhatOS\" >nul
 if exist %H%:\whatos\WhatOSLink.exe copy /y %H%:\whatos\WhatOSLink.exe "%T%:\Program Files\WhatOS\" >nul
 if exist %H%:\whatos\WhatOSRam.exe copy /y %H%:\whatos\WhatOSRam.exe "%T%:\Program Files\WhatOS\" >nul
+if exist %H%:\whatos\WhatOSGame.exe copy /y %H%:\whatos\WhatOSGame.exe "%T%:\Program Files\WhatOS\" >nul
 copy /y %H%:\whatos\logo.png %T%:\Windows\WhatOS\ >nul
 mkdir %T%:\Windows\Web\Wallpaper\WhatOS 2>nul
 copy /y %H%:\whatos\whatos-wallpaper.jpg %T%:\Windows\Web\Wallpaper\WhatOS\whatos.jpg >nul

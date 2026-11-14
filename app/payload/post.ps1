@@ -6,6 +6,17 @@ if(Test-Path 'C:\Program Files\WhatOS\WhatOS.exe'){
  $tr=@((New-ScheduledTaskTrigger -Daily -At 12:00), (New-ScheduledTaskTrigger -AtLogOn)); $tr[1].Delay='PT10M'
  Register-ScheduledTask -TaskName WhatOSUpdateCheck -Action $a -Trigger $tr -Principal (New-ScheduledTaskPrincipal -GroupId 'BUILTIN\Users') -Settings (New-ScheduledTaskSettingsSet -StartWhenAvailable) -Force | Out-Null
  "update check task $([bool](Get-ScheduledTask -TaskName WhatOSUpdateCheck -EA 0))" | Add-Content C:\whatos-post.txt
+ $sh=(New-Object -ComObject WScript.Shell).CreateShortcut("$env:PUBLIC\Desktop\WhatOS.lnk"); $sh.TargetPath='C:\Program Files\WhatOS\WhatOS.exe'; $sh.Save()
+ $e='C:\Program Files\WhatOS\WhatOSGame.exe'
+ if(Test-Path $e){
+  Register-ScheduledTask WhatOSGameMode -Action (New-ScheduledTaskAction -Execute $e) -Trigger (New-ScheduledTaskTrigger -AtLogOn) -Settings (New-ScheduledTaskSettingsSet -ExecutionTimeLimit 0 -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -Priority 4) -Principal (New-ScheduledTaskPrincipal -GroupId 'BUILTIN\Administrators' -RunLevel Highest) -Force | Out-Null
+  $k='HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\WhatOSGameMode'
+  New-Item "$k\shell\on\command", "$k\shell\off\command" -Force | Out-Null
+  Set-ItemProperty $k MUIVerb 'Game Mode'; Set-ItemProperty $k SubCommands ''; Set-ItemProperty $k Icon "$e,0"
+  Set-ItemProperty "$k\shell\on" MUIVerb 'Turn on'; Set-ItemProperty "$k\shell\off" MUIVerb 'Turn off'
+  Set-ItemProperty "$k\shell\on\command" '(default)' "`"$e`" --on"; Set-ItemProperty "$k\shell\off\command" '(default)' "`"$e`" --off"
+  "game mode task $([bool](Get-ScheduledTask -TaskName WhatOSGameMode -EA 0))" | Add-Content C:\whatos-post.txt
+ }
  if(Test-Path 'C:\Program Files\WhatOS\WhatOSRam.exe'){
   Register-ScheduledTask -TaskName WhatOSClearRAM -Action (New-ScheduledTaskAction -Execute 'C:\Program Files\WhatOS\WhatOSRam.exe') -Principal (New-ScheduledTaskPrincipal -GroupId 'BUILTIN\Administrators' -RunLevel Highest) -Settings (New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 2)) -Force | Out-Null
   $ts=New-Object -ComObject Schedule.Service; $ts.Connect(); $ts.GetFolder('\').GetTask('WhatOSClearRAM').SetSecurityDescriptor('D:(A;;FA;;;BA)(A;;FA;;;SY)(A;;GRGX;;;AU)',0)

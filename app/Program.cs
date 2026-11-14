@@ -136,6 +136,7 @@ namespace WhatOS
                 wp.x = wa.X; wp.y = wa.Y; wp.cx = wa.Width; wp.cy = wa.Height; wp.flags &= ~3u;
                 System.Runtime.InteropServices.Marshal.StructureToPtr(wp, m.LParam, false);
             }
+            if (m.Msg == 0x86) { m.LParam = new IntPtr(-1); base.WndProc(ref m); return; }
             if (m.Msg == 0x83 && m.WParam != IntPtr.Zero)
             {
                 m.Result = IntPtr.Zero;
@@ -164,6 +165,8 @@ namespace WhatOS
             base.OnHandleCreated(e);
             int v = 2;
             try { DwmSetWindowAttribute(Handle, 33, ref v, 4); } catch { }
+            int bc = 0x00362A20;
+            try { DwmSetWindowAttribute(Handle, 34, ref bc, 4); } catch { }
         }
 
         public MainForm()
@@ -269,6 +272,7 @@ namespace WhatOS
                         var t = Program.FetchUpdate(); if (t != null) Send(new { type = "selfupd", ready = t });
                     }); break;
                     case "selfrestart": if (Program.ApplyPending()) Close(); break;
+                    case "gm": { var act = m["act"] as string; var gc = m.ContainsKey("cfg") ? m["cfg"] : null; if (act == "add") { AddGame(); break; } Task.Run(() => { try { Gm(act, gc); } catch (Exception ex) { Send(new { type = "gm", err = ex.Message }); } }); break; }
                     case "stats": if (statsBusy || WindowState == FormWindowState.Minimized) break; statsBusy = true; Task.Run(() => { try { try { Send(new { type = "stats", data = Stats() }); } catch (Exception ex) { Send(new { type = "stats", err = ex.Message }); } } finally { statsBusy = false; } }); break;
                     case "sysinfo": Task.Run(() => SendCached("sysinfo", SysInfo)); break;
                     case "health": Task.Run(() => SendCached("health", Health)); break;
@@ -281,6 +285,10 @@ Unregister-ScheduledTask -TaskName WhatOSUpdateCheck -Confirm:$false -EA 0
 Remove-Item 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\WhatOS' -Recurse -Force -EA 0
 Remove-Item 'HKLM:\SOFTWARE\Classes\whatos', 'HKLM:\SOFTWARE\Classes\AppUserModelId\WhatOS', 'HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\WhatOSClearRAM' -Recurse -Force -EA 0
 Unregister-ScheduledTask -TaskName WhatOSClearRAM -Confirm:$false -EA 0
+Unregister-ScheduledTask -TaskName WhatOSGameMode -Confirm:$false -EA 0
+Get-Process WhatOSGame -EA 0 | Stop-Process -Force
+Remove-Item 'HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\WhatOSGameMode' -Recurse -Force -EA 0
+Remove-Item ""$env:PUBLIC\Desktop\WhatOS.lnk"" -Force -EA 0
 Remove-Item ""$env:ProgramData\Microsoft\Windows\Start Menu\Programs\WhatOS.lnk"" -Force -EA 0
 Remove-Item 'C:\ProgramData\WhatOS', 'C:\Windows\WhatOS' -Recurse -Force -EA 0
 Start-Process cmd -ArgumentList '/c ping -n 4 127.0.0.1 >nul & rd /s /q ""C:\Program Files\WhatOS""' -WindowStyle Hidden
@@ -328,6 +336,72 @@ Start-Process cmd -ArgumentList '/c ping -n 4 127.0.0.1 >nul & rd /s /q ""C:\Pro
             try { d = f(); } catch (Exception ex) { Send(new { type, err = ex.Message }); return; }
             Send(d != null ? (object)new { type, data = d } : new { type, err = "WhatOS could not read this." });
             try { if (d != null) { Directory.CreateDirectory(Path.GetDirectoryName(cf)); File.WriteAllText(cf, json.Serialize(d)); } } catch { }
+        }
+
+        const string GmExe = @"C:\Program Files\WhatOS\WhatOSGame.exe";
+        static string GmFile(string n) => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "WhatOS", n);
+        object GmRead(string n) { try { var f = GmFile(n); return File.Exists(f) ? json.DeserializeObject(File.ReadAllText(f)) : null; } catch { return null; } }
+        static void GmSignal(string e) { try { using (var h = System.Threading.EventWaitHandle.OpenExisting(@"Global\WhatOSGame" + e)) h.Set(); } catch { } }
+
+        void Gm(string act, object cfg)
+        {
+            if (act == "install")
+            {
+                var src = Path.Combine(Program.Work, "WhatOSGame.exe");
+                Program.Extract("payload.WhatOSGame.exe", src);
+                Ps(@"
+$e='C:\Program Files\WhatOS\WhatOSGame.exe'
+New-Item -ItemType Directory 'C:\Program Files\WhatOS' -Force | Out-Null
+Get-Process WhatOSGame -EA 0 | Stop-Process -Force
+Copy-Item '" + src + @"' $e -Force
+$s=New-ScheduledTaskSettingsSet -ExecutionTimeLimit 0 -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -Priority 4
+Register-ScheduledTask WhatOSGameMode -Action (New-ScheduledTaskAction -Execute $e) -Trigger (New-ScheduledTaskTrigger -AtLogOn) -Settings $s -Principal (New-ScheduledTaskPrincipal -GroupId 'BUILTIN\Administrators' -RunLevel Highest) -Force | Out-Null
+Start-ScheduledTask WhatOSGameMode
+$k='HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\WhatOSGameMode'
+New-Item ""$k\shell\on\command"", ""$k\shell\off\command"" -Force | Out-Null
+Set-ItemProperty $k MUIVerb 'Game Mode'; Set-ItemProperty $k SubCommands ''; Set-ItemProperty $k Icon ""$e,0""
+Set-ItemProperty ""$k\shell\on"" MUIVerb 'Turn on'; Set-ItemProperty ""$k\shell\off"" MUIVerb 'Turn off'
+Set-ItemProperty ""$k\shell\on\command"" '(default)' ""`""$e`"" --on""; Set-ItemProperty ""$k\shell\off\command"" '(default)' ""`""$e`"" --off""
+");
+                System.Threading.Thread.Sleep(1500);
+            }
+            else if (act == "remove")
+            {
+                GmSignal("Off");
+                System.Threading.Thread.Sleep(500);
+                Ps(@"
+Unregister-ScheduledTask -TaskName WhatOSGameMode -Confirm:$false -EA 0
+Get-Process WhatOSGame -EA 0 | Stop-Process -Force
+Remove-Item 'HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\WhatOSGameMode' -Recurse -Force -EA 0
+");
+            }
+            else if (act == "cfg" && cfg != null) { Directory.CreateDirectory(Path.GetDirectoryName(GmFile("gm.json"))); File.WriteAllText(GmFile("gm.json"), json.Serialize(cfg)); GmSignal("Reload"); System.Threading.Thread.Sleep(300); }
+            else if (act == "scan") { using (var p = Process.Start(new ProcessStartInfo(GmExe, "--scan") { UseShellExecute = false, CreateNoWindow = true })) p.WaitForExit(60000); GmSignal("Reload"); System.Threading.Thread.Sleep(300); }
+            else if (act == "on" || act == "off") { GmSignal(act == "on" ? "On" : "Off"); System.Threading.Thread.Sleep(800); }
+            var st = GmRead("gm-state.json") as Dictionary<string, object>;
+            var running = false;
+            try { if (st != null && st.TryGetValue("pid", out var pid) && pid != null) using (var p = Process.GetProcessById(Convert.ToInt32(pid))) running = p.ProcessName.Equals("WhatOSGame", StringComparison.OrdinalIgnoreCase); } catch { }
+            Send(new { type = "gm", data = new { installed = File.Exists(GmExe), running, state = running ? st : null, cfg = GmRead("gm.json") ?? new Dictionary<string, object>(), games = GmRead("gm-games.json") ?? new object[0] } });
+        }
+
+        void AddGame()
+        {
+            using (var d = new OpenFileDialog { Filter = "Game (*.exe)|*.exe", Title = "Pick the game's .exe" })
+            {
+                if (d.ShowDialog(this) != DialogResult.OK) { Task.Run(() => Gm("status", null)); return; }
+                var file = d.FileName;
+                Task.Run(() =>
+                {
+                    var c = GmRead("gm.json") as Dictionary<string, object> ?? new Dictionary<string, object>();
+                    var extra = (c.TryGetValue("extra", out var x) && x is object[] a ? a.ToList() : new List<object>());
+                    if (!extra.OfType<Dictionary<string, object>>().Any(e => string.Equals(e["exe"] as string, file, StringComparison.OrdinalIgnoreCase)))
+                        extra.Add(new Dictionary<string, object> { ["name"] = Path.GetFileNameWithoutExtension(file), ["exe"] = file });
+                    c["extra"] = extra;
+                    Directory.CreateDirectory(Path.GetDirectoryName(GmFile("gm.json")));
+                    File.WriteAllText(GmFile("gm.json"), json.Serialize(c));
+                    Gm("scan", null);
+                });
+            }
         }
 
         static PerformanceCounter cpuC;

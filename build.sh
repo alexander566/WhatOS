@@ -9,5 +9,7 @@ x86_64-w64-mingw32-gcc -O2 -municode -mwindows -o WhatOSLink.exe WhatOSLink.c Wh
 cd ../ram
 x86_64-w64-mingw32-windres WhatOSRam.rc -O coff -o WhatOSRam.res
 x86_64-w64-mingw32-gcc -O2 -municode -mwindows -o WhatOSRam.exe WhatOSRam.c WhatOSRam.res -lpsapi -lshell32
+cd ../game
+${DOTNET:-$HOME/.dotnet/dotnet} build -c Release -nologo -v q -o out
 cd ../../app
 ./build.sh
