@@ -72,7 +72,7 @@ if ($wg -and $list.Count) {
         $src = if ($id -match '^[0-9A-Z]{12}$') { 'msstore' } else { 'winget' }
         $o = "$d\wg-$i.txt"
         for ($try = 1; $try -le 2; $try++) {
-            $p = Start-Process $wg -ArgumentList "install --id $id -e --source $src --silent --accept-package-agreements --accept-source-agreements --disable-interactivity" -PassThru -WindowStyle Hidden -RedirectStandardOutput $o
+            $p = Start-Process $wg -ArgumentList "install --id $id -e --source $src $(if ($id -eq 'Microsoft.DirectX') { '--installer-type exe --force' }) --silent --accept-package-agreements --accept-source-agreements --disable-interactivity" -PassThru -WindowStyle Hidden -RedirectStandardOutput $o
             $null = $p.Handle
             if (-not $p.WaitForExit(900000)) { $p | Stop-Process -Force -EA 0; W "$name ($id) timed out after 15 min"; break }
             W "$name ($id) exit $($p.ExitCode)"
