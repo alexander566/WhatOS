@@ -114,7 +114,7 @@ function renderTW(){
   if(inst){return render()}
   const P=$("#tw"),d=M.data,G=d?d.groups:[];
   if(T.page==="game"&&!T.q){if(!T.gm&&!T.gmAsked){T.gmAsked=1;host.send({cmd:"gm",act:"status"})}if(!gmTimer)gmTimer=setInterval(()=>{if(T.page==="game"&&!T.gmBusy&&!T.q)host.send({cmd:"gm",act:"status"})},3000)}
-  if(T.page==="dash"&&!T.q){if(!statTimer){host.send({cmd:"stats"});statTimer=setInterval(()=>{if(T.page==="dash")host.send({cmd:"stats"})},2500)}}
+  if(T.page==="dash"&&!T.q){if(!statTimer){host.send({cmd:"stats"});statTimer=setInterval(()=>{if(T.page==="dash")host.send({cmd:"stats"})},1000)}}
   if(T.q){const q=T.q.toLowerCase(),r=G.filter(g=>(g.name+" "+g.desc+" "+g.cat).toLowerCase().includes(q));
     P.innerHTML=`<h1>Results for “${esc(T.q)}”</h1>`+(r.length?`<div class="list">${r.map(grow).join("")}</div>`:`<p class="sub">Nothing found. Try another word.</p>`)}
   else if(T.page==="dash"){const x=T.stats,y=T.sys,on=G.filter(g=>g.state==="on").length;
