@@ -33,7 +33,7 @@ namespace WhatOS
                 if (new FileInfo(n).Length < 500000) { File.Delete(n); return false; }
                 File.Move(exe, exe + ".old");
                 File.Move(n, exe);
-                Process.Start(new ProcessStartInfo(exe, string.Join(" ", Args.Select(x => "\"" + x + "\""))) { UseShellExecute = false });
+                Process.Start(new ProcessStartInfo(exe, string.Join(" ", Args.Select(x => "\"" + x + "\"")) + " --after " + Process.GetCurrentProcess().Id) { UseShellExecute = false });
                 return true;
             }
             catch { try { if (!File.Exists(exe) && File.Exists(exe + ".old")) File.Move(exe + ".old", exe); } catch { } return false; }
@@ -71,6 +71,12 @@ namespace WhatOS
             var a = string.Join(" ", args).ToLowerInvariant();
             StartTab = a.Contains("updates") ? 1 : a.Contains("--uninstall") ? 3 : 0;
             Directory.CreateDirectory(Work);
+            var ai = Array.IndexOf(args, "--after");
+            if (ai >= 0)
+            {
+                try { if (ai + 1 < args.Length) using (var p = Process.GetProcessById(int.Parse(args[ai + 1]))) p.WaitForExit(10000); } catch { }
+                args = args.Where((x, i) => i != ai && i != ai + 1).ToArray();
+            }
             Args = args;
             if (ApplyPending()) return;
             AppDomain.CurrentDomain.AssemblyResolve += (s, e) =>
@@ -95,8 +101,14 @@ namespace WhatOS
         public static void Extract(string name, string path)
         {
             using (var r = Res(name))
-            using (var f = File.Create(path))
-                r.CopyTo(f);
+            {
+                if (File.Exists(path) && new FileInfo(path).Length == r.Length) return;
+                for (var i = 0; ; i++)
+                {
+                    try { using (var f = File.Create(path)) r.CopyTo(f); return; }
+                    catch (IOException) { if (i >= 20) { if (File.Exists(path)) return; throw; } r.Position = 0; System.Threading.Thread.Sleep(250); }
+                }
+            }
         }
 
         public static string Text(string name)
