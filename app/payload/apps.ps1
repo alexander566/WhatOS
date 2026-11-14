@@ -20,11 +20,11 @@ foreach ($l in $direct) {
     St "Installing $name ($i of $($direct.Count))"
     try {
         $f = "$env:TEMP\whatos-$i.exe"
-        if ($args2 -eq 'RUNONCE') {
+        if ($args2 -like 'RUNONCE*') {
             $f = "C:\Users\Public\WhatOS\$($name -replace '[^A-Za-z0-9]','')-setup.exe"
             (New-Object Net.WebClient).DownloadFile($url, $f)
             New-Item 'HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce' -Force | Out-Null
-            Set-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce' "WhatOS$($name -replace '[^A-Za-z0-9]','')" "`"$f`""
+            Set-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce' "WhatOS$($name -replace '[^A-Za-z0-9]','')" ("`"$f`" " + ($args2 -replace '^RUNONCE\s*','')).Trim()
             W "$name installer opens at next sign-in"
             continue
         }
@@ -33,6 +33,7 @@ foreach ($l in $direct) {
         $null = $p.Handle
         $done = @{ 'Discord' = "$env:LOCALAPPDATA\Discord\app-*\Discord.exe" }[$name]
         for ($w = 0; $w -lt 84 -and -not $p.HasExited; $w++) { if ($done -and (Test-Path $done) -and (Test-Path ($sq = Join-Path (Split-Path (Split-Path $done)) 'SquirrelSetup.log')) -and (Select-String -Path $sq -Pattern 'Updating shortcut' -Quiet)) { Start-Sleep 5; break }; Start-Sleep 5 }
+        if ($name -eq 'Discord' -and ($fr = Get-ChildItem $done -EA 0 | sort FullName -Descending | select -First 1)) { Start-Sleep 5; Get-Process Discord -EA 0 | Stop-Process -Force -EA 0; Start-Sleep 2; Start-Process $fr.FullName '--squirrel-firstrun'; Start-Sleep 45; W "Discord first run done" }
         if (-not $p.HasExited -and $done -and (Test-Path $done)) { W "$name (direct) installed after $($w*5) s" }
         elseif (-not $p.WaitForExit(1000)) { $p | Stop-Process -Force -EA 0; Get-Process | ? { $_.Path -like "$env:TEMP\whatos-*" } | Stop-Process -Force -EA 0; W "$name timed out" } else { W "$name (direct) exit $($p.ExitCode)" }
     } catch { W "$name direct failed: $($_.Exception.Message)" }
