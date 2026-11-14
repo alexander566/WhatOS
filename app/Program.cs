@@ -246,8 +246,8 @@ namespace WhatOS
                     case "prepare": Prepare(m["picks"] as Dictionary<string, object>); break;
                     case "restart": RunPs("finish.ps1", "-Action restart", false); break;
                     case "cancel": RunPs("finish.ps1", "-Action cancel", true); break;
-                    case "stats": if (statsBusy) break; statsBusy = true; Task.Run(() => { try { try { Send(new { type = "stats", data = Stats() }); } catch (Exception ex) { Send(new { type = "stats", err = ex.Message }); } } finally { statsBusy = false; } }); break;
-                    case "sysinfo": Task.Run(() => { try { Send(new { type = "sysinfo", data = SysInfo() }); } catch (Exception ex) { Send(new { type = "sysinfo", err = ex.Message }); } }); break;
+                    case "stats": if (statsBusy || WindowState == FormWindowState.Minimized) break; statsBusy = true; Task.Run(() => { try { try { Send(new { type = "stats", data = Stats() }); } catch (Exception ex) { Send(new { type = "stats", err = ex.Message }); } } finally { statsBusy = false; } }); break;
+                    case "sysinfo": Task.Run(() => { var cf = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WhatOS", "sysinfo.json"); try { if (File.Exists(cf)) Send(new { type = "sysinfo", data = json.DeserializeObject(File.ReadAllText(cf)) }); } catch { } try { var si = SysInfo(); Send(new { type = "sysinfo", data = si }); Directory.CreateDirectory(Path.GetDirectoryName(cf)); File.WriteAllText(cf, json.Serialize(si)); } catch (Exception ex) { Send(new { type = "sysinfo", err = ex.Message }); } }); break;
                     case "health": Task.Run(() => { try { Send(new { type = "health", data = Health() }); } catch (Exception ex) { Send(new { type = "health", err = ex.Message }); } }); break;
                     case "clearram": Task.Run(() => { try { var r = @"C:\Program Files\WhatOS\WhatOSRam.exe"; if (!File.Exists(r)) { r = Path.Combine(Program.Work, "WhatOSRam.exe"); Program.Extract("payload.WhatOSRam.exe", r); } if (File.Exists(r)) Process.Start(r)?.WaitForExit(15000); Send(new { type = "stats", data = Stats() }); } catch { } }); break;
                     case "manage": { var a = m["action"] as string; var id = m.ContainsKey("id") ? m["id"] as string : ""; Task.Run(() => { var o = Manage("-Action " + a + " -Id \"" + id + "\""); Send(o != null ? (object)new { type = "manage", data = o } : new { type = "manage", err = "WhatOS could not change this setting." }); }); break; }
@@ -299,23 +299,32 @@ Start-Process cmd -ArgumentList '/c ping -n 4 127.0.0.1 >nul & rd /s /q ""C:\Pro
 
         static PerformanceCounter cpuC;
         static volatile bool statsBusy;
-        static PerformanceCounter diskC;
+        static PerformanceCounter diskC, procC;
+        static PerformanceCounterCategory gpuCat;
+        static InstanceDataCollection gpuPrev;
         object Stats()
         {
-            if (cpuC == null) { cpuC = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total"); cpuC.NextValue(); System.Threading.Thread.Sleep(300); }
+            var init = cpuC == null;
+            if (init)
+            {
+                cpuC = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total"); cpuC.NextValue();
+                diskC = new PerformanceCounter("PhysicalDisk", "% Idle Time", "_Total"); diskC.NextValue();
+                procC = new PerformanceCounter("System", "Processes");
+                try { gpuCat = new PerformanceCounterCategory("GPU Engine"); gpuPrev = gpuCat.ReadCategory()["utilization percentage"]; } catch { }
+                System.Threading.Thread.Sleep(500);
+            }
             double cpu = Math.Min(100, cpuC.NextValue());
             var ms = new MEMORYSTATUSEX(); ms.dwLength = (uint)System.Runtime.InteropServices.Marshal.SizeOf(ms); GlobalMemoryStatusEx(ref ms);
             double gpu = 0;
             try
             {
-                var cat = new PerformanceCounterCategory("GPU Engine");
-                var a = cat.ReadCategory()["utilization percentage"];
-                System.Threading.Thread.Sleep(400);
-                var b = cat.ReadCategory()["utilization percentage"];
+                var a = gpuPrev;
+                var b = gpuCat.ReadCategory()["utilization percentage"];
+                gpuPrev = b;
                 var per = new Dictionary<string, double>();
                 foreach (InstanceData x in b.Values)
                 {
-                    if (!a.Contains(x.InstanceName)) continue;
+                    if (a == null || !a.Contains(x.InstanceName)) continue;
                     var n = x.InstanceName; int li = n.IndexOf("luid_"), ei = n.IndexOf("engtype_");
                     if (li < 0 || ei < 0) continue;
                     var key = n.Substring(li, n.IndexOf("_phys", li) > 0 ? n.IndexOf("_phys", li) - li : 20) + "|" + n.Substring(ei);
@@ -325,7 +334,6 @@ Start-Process cmd -ArgumentList '/c ping -n 4 127.0.0.1 >nul & rd /s /q ""C:\Pro
                 if (per.Count > 0) gpu = per.Values.Max();
             }
             catch { }
-            if (diskC == null) { diskC = new PerformanceCounter("PhysicalDisk", "% Idle Time", "_Total"); diskC.NextValue(); System.Threading.Thread.Sleep(200); }
             double disk = Math.Max(0, Math.Min(100, 100 - diskC.NextValue()));
             var d = new DriveInfo("C");
             return new
@@ -333,7 +341,7 @@ Start-Process cmd -ArgumentList '/c ping -n 4 127.0.0.1 >nul & rd /s /q ""C:\Pro
                 cpu = Math.Round(cpu), gpu = Math.Round(Math.Min(100, gpu)),
                 ramUsed = (double)(ms.ullTotalPhys - ms.ullAvailPhys), ramTotal = (double)ms.ullTotalPhys,
                 diskUsed = (double)(d.TotalSize - d.AvailableFreeSpace), diskTotal = (double)d.TotalSize,
-                disk = Math.Round(disk), procs = Process.GetProcesses().Length, uptime = GetTickCount64() / 1000
+                disk = Math.Round(disk), procs = (int)procC.NextValue(), uptime = GetTickCount64() / 1000
             };
         }
         [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
@@ -384,6 +392,7 @@ $f=(Get-Volume C).SizeRemaining; A ($f -gt 20GB) 'Free space on C:' ""$([math]::
                 RedirectStandardOutput = true,
                 StandardOutputEncoding = Encoding.UTF8
             });
+            try { p.PriorityClass = ProcessPriorityClass.BelowNormal; } catch { }
             var o = p.StandardOutput.ReadToEnd();
             try { File.Delete(f); } catch { }
             p.WaitForExit();
