@@ -18,8 +18,9 @@ namespace WhatOS
 
         public static int StartTab;
 
-        [STAThread]
-        static bool SelfUpdate(string[] args)
+        static bool SelfUpdate(string[] args) => Task.Run(() => SelfUpdateCore(args)).Result;
+
+        static bool SelfUpdateCore(string[] args)
         {
             var exe = Application.ExecutablePath;
             try { File.Delete(exe + ".old"); } catch { }
@@ -47,6 +48,7 @@ namespace WhatOS
             catch { try { if (!File.Exists(exe) && File.Exists(exe + ".old")) File.Move(exe + ".old", exe); } catch { } return false; }
         }
 
+        [STAThread]
         static void Main(string[] args)
         {
             var a = string.Join(" ", args).ToLowerInvariant();
