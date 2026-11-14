@@ -5,6 +5,7 @@ $W = "$($v.DriveLetter):"
 $g = (Get-Content "$W\whatos\bcd.id" -EA 0 | select -First 1)
 if ($Action -eq 'restart') {
     bcdedit /bootsequence $g | Out-Null
+    try { if ((Get-BitLockerVolume -MountPoint C: -EA Stop).ProtectionStatus -eq 'On') { Suspend-BitLocker -MountPoint C: -RebootCount 1 | Out-Null } } catch {}
     shutdown /r /t 3 /c 'WhatOS: restarting into the installer'
     Write-Output '@done|restart'
     exit 0

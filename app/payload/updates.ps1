@@ -18,7 +18,7 @@ try {
  $us=New-Object -ComObject Microsoft.Update.Session; $us.ClientApplicationID='WhatOS'
  $seen=@{}
  foreach($ph in 'Driver','Software'){
- if($ph -eq 'Software'){ Set-Content "$st\wu.done" (Get-Date); if(-not (Test-Path "$st\prep.done")){ "wu software after restart" | Add-Content $log; exit } }
+ if($ph -eq 'Software'){ $prev=(Get-Item "$st\wu.done" -EA 0).LastWriteTime; Set-Content "$st\wu.done" (Get-Date); if(-not (Test-Path "$st\prep.done") -and (-not $prev -or $prev -gt (Get-CimInstance Win32_OperatingSystem).LastBootUpTime)){ "wu software after restart" | Add-Content $log; exit } }
  for($round=1;$round -le 3;$round++){
   St $(if($ph -eq 'Driver'){ 'Looking for drivers' } else { 'Looking for Windows updates' })
   $sr=$us.CreateUpdateSearcher(); $sr.Online=$true
