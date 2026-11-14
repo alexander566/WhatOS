@@ -429,7 +429,44 @@ Remove-Item 'HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\WhatOSGameMode' -Rec
 
         static PerformanceCounter cpuC;
         static volatile bool statsBusy;
-        static PerformanceCounter diskC, procC;
+        static PerformanceCounter diskC, procC, perfC, rdC, wrC;
+        static float freqMhz;
+        static List<PerformanceCounter[]> netC;
+        static int netAge;
+        static bool netFresh;
+        static List<PerformanceCounter> thermC;
+        static bool thermNone;
+        static PerformanceCounterCategory vramCat;
+        static readonly HashSet<string> gpuLuids = new HashSet<string>();
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)] struct KOPEN { public uint Lo; public int Hi; public uint h; }
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)] struct KQAI { public uint h; public int Type; public IntPtr p; public uint Size; }
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)] struct KPERF { public uint Index; public ulong MemFreq, MaxMemFreq, MaxMemFreqOC, MemBw, PcieBw; public uint Fan, Power, Temp; public byte Pso; }
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)] struct KCLOSE { public uint h; }
+        [System.Runtime.InteropServices.DllImport("gdi32.dll")] static extern int D3DKMTOpenAdapterFromLuid(ref KOPEN o);
+        [System.Runtime.InteropServices.DllImport("gdi32.dll")] static extern int D3DKMTQueryAdapterInfo(ref KQAI q);
+        [System.Runtime.InteropServices.DllImport("gdi32.dll")] static extern int D3DKMTCloseAdapter(ref KCLOSE c);
+        static double GpuTemp(string luid)
+        {
+            try
+            {
+                var m = System.Text.RegularExpressions.Regex.Match(luid, "luid_0x([0-9a-fA-F]+)_0x([0-9a-fA-F]+)");
+                if (!m.Success) return 0;
+                var o = new KOPEN { Hi = Convert.ToInt32(m.Groups[1].Value, 16), Lo = Convert.ToUInt32(m.Groups[2].Value, 16) };
+                if (D3DKMTOpenAdapterFromLuid(ref o) != 0) return 0;
+                var size = System.Runtime.InteropServices.Marshal.SizeOf(typeof(KPERF));
+                var buf = System.Runtime.InteropServices.Marshal.AllocHGlobal(size);
+                try
+                {
+                    System.Runtime.InteropServices.Marshal.StructureToPtr(new KPERF(), buf, false);
+                    var q = new KQAI { h = o.h, Type = 62, p = buf, Size = (uint)size };
+                    if (D3DKMTQueryAdapterInfo(ref q) != 0) return 0;
+                    var r = (KPERF)System.Runtime.InteropServices.Marshal.PtrToStructure(buf, typeof(KPERF));
+                    return r.Temp > 0 && r.Temp < 1500 ? Math.Round(r.Temp / 10.0) : 0;
+                }
+                finally { System.Runtime.InteropServices.Marshal.FreeHGlobal(buf); var c = new KCLOSE { h = o.h }; D3DKMTCloseAdapter(ref c); }
+            }
+            catch { return 0; }
+        }
         static PerformanceCounterCategory gpuCat;
         static InstanceDataCollection gpuPrev;
         object Stats()
@@ -440,6 +477,8 @@ Remove-Item 'HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\WhatOSGameMode' -Rec
                 cpuC = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total"); cpuC.NextValue();
                 diskC = new PerformanceCounter("PhysicalDisk", "% Idle Time", "_Total"); diskC.NextValue();
                 procC = new PerformanceCounter("System", "Processes");
+                try { perfC = new PerformanceCounter("Processor Information", "% Processor Performance", "_Total"); perfC.NextValue(); freqMhz = new PerformanceCounter("Processor Information", "Processor Frequency", "_Total").NextValue(); } catch { }
+                try { rdC = new PerformanceCounter("PhysicalDisk", "Disk Read Bytes/sec", "_Total"); wrC = new PerformanceCounter("PhysicalDisk", "Disk Write Bytes/sec", "_Total"); rdC.NextValue(); wrC.NextValue(); } catch { }
                 Task.Run(() => { try { var g = new PerformanceCounterCategory("GPU Engine"); gpuPrev = g.ReadCategory()["utilization percentage"]; gpuCat = g; } catch { } });
                 System.Threading.Thread.Sleep(300);
             }
@@ -457,7 +496,9 @@ Remove-Item 'HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\WhatOSGameMode' -Rec
                     if (a == null || !a.Contains(x.InstanceName)) continue;
                     var n = x.InstanceName; int li = n.IndexOf("luid_"), ei = n.IndexOf("engtype_");
                     if (li < 0 || ei < 0) continue;
-                    var key = n.Substring(li, n.IndexOf("_phys", li) > 0 ? n.IndexOf("_phys", li) - li : 20) + "|" + n.Substring(ei);
+                    var lk = n.Substring(li, n.IndexOf("_phys", li) > 0 ? n.IndexOf("_phys", li) - li : 20);
+                    gpuLuids.Add(lk);
+                    var key = lk + "|" + n.Substring(ei);
                     var v = CounterSample.Calculate(a[n].Sample, x.Sample);
                     per[key] = (per.TryGetValue(key, out var o) ? o : 0) + v;
                 }
@@ -465,13 +506,56 @@ Remove-Item 'HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\WhatOSGameMode' -Rec
             }
             catch { }
             double disk = Math.Max(0, Math.Min(100, 100 - diskC.NextValue()));
+            double ghz = 0, rd = 0, wr = 0, rx = 0, tx = 0, vram = 0; double? ctemp = null, gtemp = null;
+            try { if (perfC != null && freqMhz > 0) ghz = Math.Round(perfC.NextValue() / 100 * freqMhz / 1000, 2); } catch { }
+            try { if (rdC != null) { rd = rdC.NextValue(); wr = wrC.NextValue(); } } catch { }
+            try
+            {
+                if (netC == null || ++netAge > 30)
+                {
+                    netAge = 0;
+                    var names = new PerformanceCounterCategory("Network Interface").GetInstanceNames();
+                    if (netC == null || !names.OrderBy(x => x).SequenceEqual(netC.Select(c => c[0].InstanceName).OrderBy(x => x)))
+                    {
+                        netC = names.Select(i => new[] { new PerformanceCounter("Network Interface", "Bytes Received/sec", i), new PerformanceCounter("Network Interface", "Bytes Sent/sec", i) }).ToList();
+                        foreach (var c in netC) { c[0].NextValue(); c[1].NextValue(); }
+                        netFresh = true;
+                    }
+                }
+                if (!netFresh) foreach (var c in netC) { rx += c[0].NextValue(); tx += c[1].NextValue(); }
+                netFresh = false;
+            }
+            catch { netC = null; }
+            try
+            {
+                if (thermC == null && !thermNone)
+                {
+                    var cat = new PerformanceCounterCategory("Thermal Zone Information");
+                    thermC = cat.GetInstanceNames().Select(i => new PerformanceCounter("Thermal Zone Information", "Temperature", i)).ToList();
+                    if (thermC.Count == 0) thermNone = true;
+                }
+                if (thermC != null) { var k = thermC.Max(c => c.NextValue()); if (k > 200) ctemp = Math.Round(k - 273.15); }
+            }
+            catch { thermNone = true; thermC = null; }
+            foreach (var l in gpuLuids.ToArray())
+            {
+                var t = GpuTemp(l);
+                if (t > 0 && (gtemp == null || t > gtemp)) gtemp = t;
+            }
+            try
+            {
+                if (vramCat == null) vramCat = new PerformanceCounterCategory("GPU Adapter Memory");
+                foreach (InstanceData x in vramCat.ReadCategory()["dedicated usage"].Values) vram = Math.Max(vram, x.RawValue);
+            }
+            catch { }
             var d = new DriveInfo("C");
             return new
             {
                 cpu = Math.Round(cpu), gpu = gpu.HasValue ? (object)Math.Round(Math.Min(100, gpu.Value)) : null,
                 ramUsed = (double)(ms.ullTotalPhys - ms.ullAvailPhys), ramTotal = (double)ms.ullTotalPhys,
                 diskUsed = (double)(d.TotalSize - d.AvailableFreeSpace), diskTotal = (double)d.TotalSize,
-                disk = Math.Round(disk), procs = (int)procC.NextValue(), uptime = GetTickCount64() / 1000
+                disk = Math.Round(disk), procs = (int)procC.NextValue(), uptime = GetTickCount64() / 1000,
+                ghz, rd = Math.Round(rd), wr = Math.Round(wr), rx = Math.Round(rx), tx = Math.Round(tx), vram, ctemp, gtemp
             };
         }
         [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
