@@ -235,7 +235,7 @@ if ($whatos) {
         'Discord' = 'https://discord.com/api/downloads/distributions/app/installers/latest?channel=stable&platform=win&arch=x64|user|Discord|-s'; 'Telegram' = 'Telegram.TelegramDesktop|admin'; 'WhatsApp' = '9NKSQGP7F2NH|admin'; 'LINE' = 'https://desktop.line-scdn.net/win/new/LineInst.exe|user|LINE|RUNONCE'
         'VLC' = 'VideoLAN.VLC|admin'; 'Spotify' = 'https://download.scdn.co/SpotifySetup.exe|user|Spotify|/silent'; 'OBS' = 'OBSProject.OBSStudio|admin' }
     $al = foreach ($k in 'browser', 'zip', 'games', 'chat', 'media') { foreach ($a in @($picks.apps.$k)) { $v = $ids[$a]; if ($v -match '^https?://') { $v } elseif ($v) { "$v|$a" } } }
-    if ($al) { $al | Set-Content "$H\apps.txt" -Encoding ascii; Copy-Item "$Payload\apps.ps1" $H; L "apps $($al -join ', ')" }
+    Set-Content "$H\apps.txt" -Value @($al) -Encoding ascii; Copy-Item "$Payload\apps.ps1" $H; L "apps $($al -join ', ')"
     @("set MITIG=$(& $b $picks.mitig)", "set DEF=$(& $b $picks.def)", "set XBOX=$(& $b $picks.xbox)", "set STORE=$(& $b $picks.store)", "set KEEPAPPS=$($keep -join ' ')", "set EDGE=$edge") | Set-Content "$H\choices.cmd" -Encoding ascii
 }
 if ($picks.test -and $whatos) {

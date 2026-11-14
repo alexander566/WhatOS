@@ -102,6 +102,11 @@ reg add %UN% /v UninstallString /t REG_SZ /d "\"C:\Program Files\WhatOS\WhatOS.e
 reg add %UN% /v NoModify /t REG_DWORD /d 1 /f >nul
 reg add %UN% /v NoRepair /t REG_DWORD /d 1 /f >nul
 reg add %AS% /v Version /t REG_SZ /d 1,0 /f >nul
+set AM="HKLM\OS\Microsoft\Active Setup\Installed Components\{7A1E5B2C-0A70-4D05-9E11-00000000A706}"
+reg add %AM% /ve /t REG_SZ /d "WhatOS menu" /f >nul
+reg add %AM% /v StubPath /t REG_SZ /d "reg add \"HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32\" /ve /f" /f >nul
+reg add %AM% /v Version /t REG_SZ /d 1,0 /f >nul
+reg add %AM% /v IsInstalled /t REG_DWORD /d 1 /f >nul
 reg add %AS% /v IsInstalled /t REG_DWORD /d 1 /f >nul
 reg add %AS% /v StubPath /t REG_SZ /d "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File C:\Windows\WhatOS\whatos-prep.ps1" /f >nul
 call :p "Windows\CloudContent" DisableWindowsConsumerFeatures 1
@@ -155,7 +160,6 @@ reg add "HKLM\DU\Control Panel\Accessibility\StickyKeys" /v Flags /t REG_SZ /d 5
 reg add "HKLM\DU\Control Panel\Accessibility\Keyboard Response" /v Flags /t REG_SZ /d 122 /f >nul
 reg add "HKLM\DU\Control Panel\Accessibility\ToggleKeys" /v Flags /t REG_SZ /d 58 /f >nul
 reg add HKLM\DU\Software\Microsoft\DirectX\UserGpuPreferences /v DirectXUserGlobalSettings /t REG_SZ /d "SwapEffectUpgradeEnable=1;VRROptimizeEnable=1;AutoHDREnable=0;" /f >nul
-reg add "HKLM\DU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /ve /t REG_SZ /d "" /f >nul
 reg add %C%\Themes\Personalize /v AppsUseLightTheme /t REG_DWORD /d 0 /f >nul
 reg add %C%\Themes\Personalize /v SystemUsesLightTheme /t REG_DWORD /d 0 /f >nul
 reg add "HKLM\DU\Control Panel\Desktop" /v WallPaper /t REG_SZ /d C:\Windows\Web\Wallpaper\WhatOS\whatos.jpg /f >nul

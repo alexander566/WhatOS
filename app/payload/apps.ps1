@@ -9,7 +9,10 @@ W "start as $(whoami)"
 St 'Waiting for the internet'
 for ($n = 0; $n -lt 43200; $n++) { try { $tc = New-Object Net.Sockets.TcpClient; $tc.Connect('1.1.1.1', 443); $tc.Close(); break } catch { Start-Sleep 2 } }
 W 'online'
-$list = @(Get-Content C:\Windows\WhatOS\apps.txt | ? { $_ -match "\|$Mode\|" })
+$list = @(Get-Content C:\Windows\WhatOS\apps.txt -EA 0 | ? { $_ -match "\|$Mode\|" })
+if ($Mode -eq 'admin') {
+    $list += 'Microsoft.VCRedist.2015+.x64|admin|Visual C++ x64', 'Microsoft.VCRedist.2015+.x86|admin|Visual C++ x86', 'Microsoft.DirectX|admin|DirectX'
+}
 $wg = $null
 $direct = @($list | ? { $_ -match '^https?://' })
 $list = @($list | ? { $_ -notmatch '^https?://' })
@@ -80,6 +83,32 @@ if ($wg -and $list.Count) {
     }
 } elseif ($list.Count) { W 'winget not available, apps skipped' }
 if ($Mode -eq 'admin') {
+    try {
+        $v = Get-CimInstance Win32_VideoController | ? { $_.PNPDeviceID -match 'VEN_10DE' } | select -First 1
+        if ($v) {
+            St 'Checking the NVIDIA driver'
+            $want = $v.Name -replace '^NVIDIA ', ''
+            $x = [xml](Invoke-WebRequest 'https://www.nvidia.com/Download/API/lookupValueSearch.aspx?TypeID=3' -UseBasicParsing -UserAgent 'Mozilla/5.0' -TimeoutSec 60).Content
+            $lap = [bool](Get-CimInstance Win32_Battery -EA 0)
+            $got = foreach ($c in @($x.LookupValueSearch.LookupValues.LookupValue | ? { ($_.Name -replace '^NVIDIA ', '') -eq $want })) {
+                $r = Invoke-RestMethod "https://gfwsl.geforce.com/services_toolkit/services/com/nvidia/services/AjaxDriverService.php?func=DriverManualLookup&psid=$($c.ParentID)&pfid=$($c.Value)&osID=57&languageCode=1033&isWHQL=1&dch=1&sort1=0&numberOfResults=1" -UserAgent 'Mozilla/5.0' -TimeoutSec 60
+                $r.IDS[0].downloadInfo
+            }
+            $pick = @($got | ? { $_.DownloadURL -match $(if ($lap) { 'notebook' } else { 'desktop' }) }) + @($got) | select -First 1
+            $have = (($v.DriverVersion -split '\.')[2..3] -join '') -replace '^.*(\d{5})$', '$1'
+            $haveV = [double]($have.Substring(0, 3) + '.' + $have.Substring(3))
+            W "nvidia $($v.Name) has $haveV latest $($pick.Version)"
+            if ($pick -and [double]$pick.Version -gt $haveV) {
+                St "Downloading NVIDIA driver $($pick.Version)"
+                $f = "$d\nvidia-$($pick.Version).exe"
+                (New-Object Net.WebClient).DownloadFile($pick.DownloadURL, $f)
+                St "Installing NVIDIA driver $($pick.Version)"
+                $p = Start-Process $f '-s -noreboot -noeula' -PassThru
+                if (-not $p.WaitForExit(1800000)) { $p | Stop-Process -Force -EA 0; W 'nvidia driver timed out' } else { W "nvidia driver exit $($p.ExitCode)" }
+                Remove-Item $f -Force -EA 0
+            }
+        }
+    } catch { W "nvidia driver: $($_.Exception.Message)" }
     Set-Content "$d\apps.done" (Get-Date)
     Unregister-ScheduledTask -TaskName WhatOSApps -Confirm:$false -EA 0
 } else { Set-Content "$d\apps-user.done" (Get-Date) }
