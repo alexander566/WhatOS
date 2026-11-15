@@ -389,6 +389,7 @@ namespace WhatOS
                     case "power": { var act = m["act"] as string; Task.Run(() => { try { Send(new { type = "power", data = PowerPlans.Do(act, m) }); } catch (Exception ex) { Send(new { type = "power", err = ex.Message }); } }); break; }
                     case "net": { var act = m["act"] as string; Task.Run(() => { try { Send(new { type = "net", act, data = Net.Do(act, m) }); } catch (Exception ex) { Send(new { type = "net", act, err = ex.Message }); } }); break; }
                     case "svc": { var act = m["act"] as string; Task.Run(() => { try { Send(new { type = "svc", data = Svc.Do(act, m, json, Program.Text("payload.services.json")) }); } catch (Exception ex) { Send(new { type = "svc", err = ex.Message }); } }); break; }
+                    case "tools": { var act = m["act"] as string; Task.Run(() => { try { Send(new { type = "tools", act, data = Tools(act, m) }); } catch (Exception ex) { Send(new { type = "tools", act, err = ex.Message }); } }); break; }
                     case "stats": if (statsBusy || WindowState == FormWindowState.Minimized) break; statsBusy = true; Task.Run(() => { try { try { Send(new { type = "stats", data = Stats() }); } catch (Exception ex) { Send(new { type = "stats", err = ex.Message }); } } finally { statsBusy = false; } }); break;
                     case "sysinfo": Task.Run(() => SendCached("sysinfo", SysInfo)); break;
                     case "health": Task.Run(() => SendCached("health", Health)); break;
@@ -647,6 +648,58 @@ Remove-Item 'HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\WhatOSGameMode' -Rec
             foreach (var (dir, hive, hn) in new[] { (Environment.GetFolderPath(Environment.SpecialFolder.Startup), Microsoft.Win32.Registry.CurrentUser, "HKCU"), (Environment.GetFolderPath(Environment.SpecialFolder.CommonStartup), Microsoft.Win32.Registry.LocalMachine, "HKLM") })
                 try { foreach (var f in Directory.GetFiles(dir).Where(x => !x.EndsWith("desktop.ini", StringComparison.OrdinalIgnoreCase))) list.Add(new Dictionary<string, object> { ["id"] = hn + "|StartupFolder|" + Path.GetFileName(f), ["name"] = Path.GetFileNameWithoutExtension(f), ["cmd"] = f, ["on"] = On(hive, "StartupFolder", Path.GetFileName(f)), ["all"] = hn == "HKLM" }); } catch { }
             return list.OrderBy(x => (string)x["name"], StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        static readonly Dictionary<string, string[]> WinTools = new Dictionary<string, string[]>
+        {
+            ["devmgmt"] = new[] { "mmc.exe", "devmgmt.msc" }, ["diskmgmt"] = new[] { "mmc.exe", "diskmgmt.msc" }, ["taskmgr"] = new[] { "taskmgr.exe", "" },
+            ["eventvwr"] = new[] { "mmc.exe", "eventvwr.msc" }, ["services"] = new[] { "mmc.exe", "services.msc" }, ["msconfig"] = new[] { "msconfig.exe", "" },
+            ["power"] = new[] { "control.exe", "powercfg.cpl" }, ["sound"] = new[] { "control.exe", "mmsys.cpl" }, ["ncpa"] = new[] { "control.exe", "ncpa.cpl" },
+            ["appwiz"] = new[] { "control.exe", "appwiz.cpl" }, ["regedit"] = new[] { "regedit.exe", "" }, ["display"] = new[] { "explorer.exe", "ms-settings:display" },
+            ["gfx"] = new[] { "explorer.exe", "ms-settings:display-advancedgraphics" }, ["wu"] = new[] { "explorer.exe", "ms-settings:windowsupdate" }, ["mouse"] = new[] { "control.exe", "main.cpl" },
+            ["rel"] = new[] { "perfmon.exe", "/rel" }, ["resmon"] = new[] { "resmon.exe", "" }, ["dxdiag"] = new[] { "dxdiag.exe", "" }, ["rstrui"] = new[] { "rstrui.exe", "" },
+        };
+
+        object Tools(string act, Dictionary<string, object> m)
+        {
+            if (act == "open")
+            {
+                if (WinTools.TryGetValue((string)m["id"], out var t)) Process.Start(new ProcessStartInfo(t[0], t[1]) { UseShellExecute = true });
+                else if (m["id"] is string u && u.StartsWith("https://")) Process.Start(new ProcessStartInfo(u) { UseShellExecute = true });
+                return null;
+            }
+            if (act == "drivers") return json.DeserializeObject(Ps(@"
+$r=@()
+foreach($v in @(Get-CimInstance Win32_VideoController | ? { $_.PNPDeviceID -match '^PCI' })){
+ $o=[ordered]@{ name=$v.Name; ver=$v.DriverVersion; date=$(if($v.DriverDate){$v.DriverDate.ToString('yyyy-MM-dd')}); vendor=$(if($v.PNPDeviceID -match 'VEN_10DE'){'nvidia'}elseif($v.PNPDeviceID -match 'VEN_1002'){'amd'}elseif($v.PNPDeviceID -match 'VEN_8086'){'intel'}else{'other'}); latest=$null; url=$null }
+ if($o.vendor -eq 'nvidia'){ try{
+  $want=$v.Name -replace '^NVIDIA ',''; $x=[xml](Invoke-WebRequest 'https://www.nvidia.com/Download/API/lookupValueSearch.aspx?TypeID=3' -UseBasicParsing -UserAgent 'Mozilla/5.0' -TimeoutSec 20).Content
+  $c=@($x.LookupValueSearch.LookupValues.LookupValue | ? { ($_.Name -replace '^NVIDIA ','') -eq $want })[0]
+  $d=(Invoke-RestMethod ""https://gfwsl.geforce.com/services_toolkit/services/com/nvidia/services/AjaxDriverService.php?func=DriverManualLookup&psid=$($c.ParentID)&pfid=$($c.Value)&osID=57&languageCode=1033&isWHQL=1&dch=1&sort1=0&numberOfResults=1"" -UserAgent 'Mozilla/5.0' -TimeoutSec 20).IDS[0].downloadInfo
+  $h=(($v.DriverVersion -split '\.')[2..3] -join '') -replace '^.*(\d{5})$','$1'; $o.short=$h.Substring(0,3)+'.'+$h.Substring(3); $o.latest=$d.Version; $o.url=$d.DownloadURL } catch {} }
+ $r+=[pscustomobject]$o }
+@($r) | ConvertTo-Json -Compress -Depth 3"));
+            if (act == "rplist" || act == "rpmake")
+            {
+                if (act == "rpmake") Ps(@"
+Enable-ComputerRestore -Drive 'C:\' -EA 0
+New-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore' SystemRestorePointCreationFrequency -Value 0 -PropertyType DWord -Force | Out-Null
+Checkpoint-Computer -Description 'WhatOS' -RestorePointType MODIFY_SETTINGS -EA Stop");
+                return json.DeserializeObject(Ps(@"@(Get-ComputerRestorePoint -EA 0 | sort SequenceNumber -Descending | select -First 10 | % { [pscustomobject]@{ name=$_.Description; date=([Management.ManagementDateTimeConverter]::ToDateTime($_.CreationTime)).ToString('yyyy-MM-dd HH:mm') } }) | ConvertTo-Json -Compress"));
+            }
+            if (act == "specs")
+            {
+                var si = SysInfo() as Dictionary<string, object>;
+                var sb = new StringBuilder("WhatOS PC specs  " + DateTime.Now.ToString("yyyy-MM-dd HH:mm") + "\r\n\r\n");
+                if (si != null) foreach (var kv in si) sb.Append(kv.Key.PadRight(12) + (kv.Value is object[] a ? string.Join("; ", a.Select(x => x is Dictionary<string, object> d ? string.Join(" ", d.Values) : x?.ToString())) : kv.Value?.ToString()) + "\r\n");
+                var st = GmRead("state.json") as Dictionary<string, object>;
+                if (st != null && st.TryGetValue("applied", out var ap) && ap is object[] ids) sb.Append("\r\nWhatOS tweaks on: " + string.Join(", ", ids) + "\r\n");
+                var f = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "PC specs.txt");
+                File.WriteAllText(f, sb.ToString());
+                Process.Start(new ProcessStartInfo("notepad.exe", "\"" + f + "\"") { UseShellExecute = true });
+                return f;
+            }
+            return null;
         }
 
         static PerformanceCounter cpuC;
