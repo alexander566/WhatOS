@@ -1,0 +1,314 @@
+[
+{
+"cat": "Browsers",
+"id": "Google.Chrome",
+"name": "Chrome",
+"desc": "The most used browser"
+},
+{
+"cat": "Browsers",
+"id": "Mozilla.Firefox",
+"name": "Firefox",
+"desc": "Open-source browser by Mozilla"
+},
+{
+"cat": "Browsers",
+"id": "Brave.Brave",
+"name": "Brave",
+"desc": "Blocks ads and trackers by default"
+},
+{
+"cat": "Browsers",
+"id": "Opera.OperaGX",
+"name": "Opera GX",
+"desc": "Browser made for gamers"
+},
+{
+"cat": "Browsers",
+"id": "Vivaldi.Vivaldi",
+"name": "Vivaldi",
+"desc": "Lots of built-in options"
+},
+{
+"cat": "Browsers",
+"id": "LibreWolf.LibreWolf",
+"name": "LibreWolf",
+"desc": "Firefox without telemetry"
+},
+{
+"cat": "Game stores",
+"id": "Valve.Steam",
+"name": "Steam",
+"desc": "PC games store and launcher"
+},
+{
+"cat": "Game stores",
+"id": "EpicGames.EpicGamesLauncher",
+"name": "Epic Games",
+"desc": "Fortnite and free weekly games"
+},
+{
+"cat": "Game stores",
+"id": "ElectronicArts.EADesktop",
+"name": "EA app",
+"desc": "EA games like FC and Battlefield"
+},
+{
+"cat": "Game stores",
+"id": "Ubisoft.Connect",
+"name": "Ubisoft Connect",
+"desc": "Ubisoft games"
+},
+{
+"cat": "Game stores",
+"id": "Blizzard.BattleNet",
+"name": "Battle.net",
+"desc": "Blizzard and Call of Duty games"
+},
+{
+"cat": "Game stores",
+"id": "GOG.Galaxy",
+"name": "GOG Galaxy",
+"desc": "DRM-free games"
+},
+{
+"cat": "Game stores",
+"id": "Playnite.Playnite",
+"name": "Playnite",
+"desc": "All your game libraries in one app"
+},
+{
+"cat": "Game stores",
+"id": "RiotGames.Valorant.AP",
+"name": "VALORANT",
+"desc": "Riot's shooter (Asia-Pacific)"
+},
+{
+"cat": "Game stores",
+"id": "RiotGames.LeagueOfLegends.EUW",
+"name": "League of Legends",
+"desc": "Riot's MOBA (EU West)"
+},
+{
+"cat": "Chat",
+"id": "Discord.Discord",
+"name": "Discord",
+"desc": "Voice and text chat for gamers"
+},
+{
+"cat": "Chat",
+"id": "Telegram.TelegramDesktop",
+"name": "Telegram",
+"desc": "Fast messaging app"
+},
+{
+"cat": "Chat",
+"id": "Zoom.Zoom",
+"name": "Zoom",
+"desc": "Video meetings"
+},
+{
+"cat": "Chat",
+"id": "SlackTechnologies.Slack",
+"name": "Slack",
+"desc": "Team chat"
+},
+{
+"cat": "Chat",
+"id": "Microsoft.Teams",
+"name": "Microsoft Teams",
+"desc": "Meetings and chat for work and school"
+},
+{
+"cat": "Media",
+"id": "VideoLAN.VLC",
+"name": "VLC",
+"desc": "Plays any video or audio file"
+},
+{
+"cat": "Media",
+"id": "Spotify.Spotify",
+"name": "Spotify",
+"desc": "Music streaming"
+},
+{
+"cat": "Media",
+"id": "OBSProject.OBSStudio",
+"name": "OBS Studio",
+"desc": "Recording and streaming"
+},
+{
+"cat": "Media",
+"id": "clsid2.mpc-hc",
+"name": "MPC-HC",
+"desc": "Light video player"
+},
+{
+"cat": "Media",
+"id": "Audacity.Audacity",
+"name": "Audacity",
+"desc": "Audio editor"
+},
+{
+"cat": "Media",
+"id": "HandBrake.HandBrake",
+"name": "HandBrake",
+"desc": "Video converter"
+},
+{
+"cat": "Tools",
+"id": "7zip.7zip",
+"name": "7-Zip",
+"desc": "Open zip, rar and 7z files"
+},
+{
+"cat": "Tools",
+"id": "RARLab.WinRAR",
+"name": "WinRAR",
+"desc": "Zip and rar tool"
+},
+{
+"cat": "Tools",
+"id": "M2Team.NanaZip",
+"name": "NanaZip",
+"desc": "Modern 7-Zip"
+},
+{
+"cat": "Tools",
+"id": "Notepad++.Notepad++",
+"name": "Notepad++",
+"desc": "Text editor"
+},
+{
+"cat": "Tools",
+"id": "voidtools.Everything",
+"name": "Everything",
+"desc": "Finds any file instantly"
+},
+{
+"cat": "Tools",
+"id": "Microsoft.PowerToys",
+"name": "PowerToys",
+"desc": "Extra Windows tools from Microsoft"
+},
+{
+"cat": "Tools",
+"id": "ShareX.ShareX",
+"name": "ShareX",
+"desc": "Screenshots and screen recording"
+},
+{
+"cat": "Tools",
+"id": "Microsoft.VisualStudioCode",
+"name": "VS Code",
+"desc": "Code editor"
+},
+{
+"cat": "Tools",
+"id": "qBittorrent.qBittorrent",
+"name": "qBittorrent",
+"desc": "Torrent client without ads"
+},
+{
+"cat": "Tools",
+"id": "AnyDesk.AnyDesk",
+"name": "AnyDesk",
+"desc": "Remote desktop"
+},
+{
+"cat": "Tools",
+"id": "Rufus.Rufus",
+"name": "Rufus",
+"desc": "Make bootable USB sticks"
+},
+{
+"cat": "Hardware info",
+"id": "REALiX.HWiNFO",
+"name": "HWiNFO",
+"desc": "Every sensor and spec in your PC"
+},
+{
+"cat": "Hardware info",
+"id": "CPUID.CPU-Z",
+"name": "CPU-Z",
+"desc": "CPU, board and RAM details"
+},
+{
+"cat": "Hardware info",
+"id": "TechPowerUp.GPU-Z",
+"name": "GPU-Z",
+"desc": "Graphics card details"
+},
+{
+"cat": "Hardware info",
+"id": "CPUID.HWMonitor",
+"name": "HWMonitor",
+"desc": "Temperatures and voltages"
+},
+{
+"cat": "Hardware info",
+"id": "Guru3D.Afterburner",
+"name": "MSI Afterburner",
+"desc": "GPU overclock, fan curve and FPS overlay"
+},
+{
+"cat": "Hardware info",
+"id": "CrystalDewWorld.CrystalDiskInfo",
+"name": "CrystalDiskInfo",
+"desc": "Disk health and temperature"
+},
+{
+"cat": "Hardware info",
+"id": "CrystalDewWorld.CrystalDiskMark",
+"name": "CrystalDiskMark",
+"desc": "Disk speed test"
+},
+{
+"cat": "Drivers",
+"id": "Wagnardsoft.DisplayDriverUninstaller",
+"name": "DDU",
+"desc": "Removes graphics drivers cleanly"
+},
+{
+"cat": "Drivers",
+"id": "TechPowerUp.NVCleanstall",
+"name": "NVCleanstall",
+"desc": "Install NVIDIA drivers without extras"
+},
+{
+"cat": "Drivers",
+"id": "Orbmu2k.nvidiaProfileInspector",
+"name": "NVIDIA Profile Inspector",
+"desc": "Hidden NVIDIA driver settings"
+},
+{
+"cat": "Drivers",
+"id": "Intel.IntelDriverAndSupportAssistant",
+"name": "Intel Driver Assistant",
+"desc": "Updates Intel drivers"
+},
+{
+"cat": "Runtimes",
+"id": "Microsoft.VCRedist.2015+.x64",
+"name": "Visual C++ 2015-2022",
+"desc": "Needed by most games"
+},
+{
+"cat": "Runtimes",
+"id": "Microsoft.DirectX",
+"name": "DirectX (older games)",
+"desc": "DirectX 9 files for older games"
+},
+{
+"cat": "Runtimes",
+"id": "Microsoft.DotNet.DesktopRuntime.8",
+"name": ".NET 8 Desktop",
+"desc": ".NET apps need it"
+},
+{
+"cat": "Runtimes",
+"id": "Oracle.JavaRuntimeEnvironment",
+"name": "Java 8",
+"desc": "For Minecraft mods and Java apps"
+}
+]

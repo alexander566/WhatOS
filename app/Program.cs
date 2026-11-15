@@ -248,11 +248,21 @@ namespace WhatOS
             Text = "WhatOS";
             FormBorderStyle = FormBorderStyle.None;
             BackColor = Color.FromArgb(18, 24, 33);
-            ClientSize = new Size(1180, 760);
+            var wa = Screen.PrimaryScreen.WorkingArea;
+            ClientSize = new Size(Math.Min(wa.Width, Math.Max(1180, wa.Width * 4 / 5)), Math.Min(wa.Height, Math.Max(760, wa.Height * 7 / 8)));
             MinimumSize = new Size(860, 560);
             Padding = new Padding(5);
             Resize += (s, e) => Padding = new Padding(WindowState == FormWindowState.Maximized ? 0 : 5);
             StartPosition = FormStartPosition.CenterScreen;
+            var wf = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WhatOS", "window.txt");
+            try
+            {
+                var v = File.ReadAllText(wf).Split(',').Select(int.Parse).ToArray();
+                var r = new Rectangle(v[0], v[1], v[2], v[3]);
+                if (Screen.AllScreens.Any(sc => sc.WorkingArea.IntersectsWith(r)) && r.Width >= 860 && r.Height >= 560) { StartPosition = FormStartPosition.Manual; Bounds = r; if (v[4] == 1) WindowState = FormWindowState.Maximized; }
+            }
+            catch { }
+            FormClosing += (s, e) => { try { var b = WindowState == FormWindowState.Normal ? Bounds : RestoreBounds; Directory.CreateDirectory(Path.GetDirectoryName(wf)); File.WriteAllText(wf, b.X + "," + b.Y + "," + b.Width + "," + b.Height + "," + (WindowState == FormWindowState.Maximized ? 1 : 0)); } catch { } };
             using (var r = Program.Res("ui.logo.png"))
             using (var b = new Bitmap(r))
                 Icon = Icon.FromHandle(b.GetHicon());
@@ -358,6 +368,7 @@ namespace WhatOS
                             catch { }
                             break;
                         }
+                    case "apps": { var act = m["act"] as string; Task.Run(() => { try { Apps(act, m); } catch (Exception ex) { Send(new { type = "apps", act, err = ex.Message }); } }); break; }
                     case "stats": if (statsBusy || WindowState == FormWindowState.Minimized) break; statsBusy = true; Task.Run(() => { try { try { Send(new { type = "stats", data = Stats() }); } catch (Exception ex) { Send(new { type = "stats", err = ex.Message }); } } finally { statsBusy = false; } }); break;
                     case "sysinfo": Task.Run(() => SendCached("sysinfo", SysInfo)); break;
                     case "health": Task.Run(() => SendCached("health", Health)); break;
@@ -487,6 +498,135 @@ Remove-Item 'HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\WhatOSGameMode' -Rec
                     Gm("scan", null);
                 });
             }
+        }
+
+        static string Winget()
+        {
+            var a = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\WindowsApps\winget.exe");
+            if (File.Exists(a)) return a;
+            try { var d = Directory.GetDirectories(@"C:\Program Files\WindowsApps", "Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe").OrderByDescending(x => x).Select(x => Path.Combine(x, "winget.exe")).FirstOrDefault(File.Exists); if (d != null) return d; } catch { }
+            return null;
+        }
+        static int Run(string exe, string args, out string output, int ms = 600000)
+        {
+            using (var p = Process.Start(new ProcessStartInfo(exe, args) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true, StandardOutputEncoding = Encoding.UTF8 }))
+            {
+                var t = p.StandardOutput.ReadToEndAsync(); p.StandardError.ReadToEndAsync();
+                if (!p.WaitForExit(ms)) { try { p.Kill(); } catch { } output = "timeout"; return -1; }
+                output = t.Result; return p.ExitCode;
+            }
+        }
+        static readonly object appsLock = new object();
+        static HashSet<string> wgInstalled;
+
+        void Apps(string act, Dictionary<string, object> m)
+        {
+            if (act == "catalog")
+            {
+                var cat = json.DeserializeObject(Program.Text("payload.apps-catalog.json"));
+                Send(new { type = "apps", act, catalog = cat, installed = wgInstalled, winget = Winget() != null });
+                var wg = Winget();
+                if (wg == null) return;
+                var f = Path.Combine(Program.Work, "wg-export.json");
+                try { File.Delete(f); } catch { }
+                Run(wg, "export -o \"" + f + "\" --accept-source-agreements --disable-interactivity", out _, 120000);
+                var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                try
+                {
+                    var d = (Dictionary<string, object>)json.DeserializeObject(File.ReadAllText(f));
+                    foreach (Dictionary<string, object> src in (object[])d["Sources"]) foreach (Dictionary<string, object> pk in (object[])src["Packages"]) ids.Add((string)pk["PackageIdentifier"]);
+                }
+                catch { }
+                wgInstalled = ids;
+                Send(new { type = "apps", act, catalog = cat, installed = ids, winget = true });
+            }
+            else if (act == "install")
+            {
+                var wg = Winget();
+                if (wg == null) { Send(new { type = "apps", act, err = "winget is missing. Install App Installer from the Microsoft Store." }); return; }
+                lock (appsLock)
+                    foreach (var id in ((System.Collections.IEnumerable)m["ids"]).Cast<object>().Select(x => x.ToString()))
+                    {
+                        Send(new { type = "appsprog", id, st = "busy" });
+                        var rc = Run(wg, "install --id \"" + id + "\" -e --silent --accept-package-agreements --accept-source-agreements --disable-interactivity", out var o, 1200000);
+                        var ok = rc == 0 || rc == -1978335189 || rc == -1978335135;
+                        if (ok) (wgInstalled ?? (wgInstalled = new HashSet<string>(StringComparer.OrdinalIgnoreCase))).Add(id);
+                        Send(new { type = "appsprog", id, st = ok ? "done" : "fail", msg = ok ? null : "winget error " + rc });
+                    }
+                Send(new { type = "appsprog", id = (string)null, st = "end" });
+            }
+            else if (act == "installed") Send(new { type = "apps", act, list = InstalledApps() });
+            else if (act == "remove")
+            {
+                var key = m["key"] as string;
+                var a = InstalledApps().FirstOrDefault(x => (string)x["key"] == key);
+                if (a == null) { Send(new { type = "apps", act, err = "That app is already gone." }); return; }
+                var cmd = (a["quiet"] as string) ?? (a["un"] as string) ?? "";
+                var mm = System.Text.RegularExpressions.Regex.Match(cmd, @"(?i)msiexec(\.exe)?\s+/[ix]\s*(\{[0-9A-F-]+\})");
+                string exe, args;
+                if (mm.Success) { exe = "msiexec.exe"; args = "/x " + mm.Groups[2].Value + " /qb /norestart"; }
+                else if (cmd.StartsWith("\"")) { var e = cmd.IndexOf('"', 1); exe = cmd.Substring(1, e - 1); args = cmd.Substring(e + 1).Trim(); }
+                else { var e = cmd.IndexOf(".exe", StringComparison.OrdinalIgnoreCase); exe = e > 0 ? cmd.Substring(0, e + 4) : cmd; args = e > 0 ? cmd.Substring(e + 4).Trim() : ""; }
+                Send(new { type = "apps", act = "removing", key });
+                var wg = Winget();
+                string wo = null; var rc = wg == null ? -1 : Run(wg, "uninstall --name \"" + ((string)a["name"]).Replace("\"", "") + "\" --exact --silent --accept-source-agreements --disable-interactivity", out wo, 900000);
+                try { File.AppendAllText(Path.Combine(Program.Work, "apps.log"), DateTime.Now + " uninstall " + a["name"] + " rc=" + rc + "\r\n" + wo + "\r\n"); } catch { }
+                var quiet = false;
+                if (rc == 0) for (var i = 0; i < 15 && !(quiet = !InstalledApps().Any(x => (string)x["key"] == key)); i++) System.Threading.Thread.Sleep(2000);
+                if (!quiet) try { using (var p = Process.Start(new ProcessStartInfo(exe, args) { UseShellExecute = true })) p.WaitForExit(900000); } catch (Exception ex) { Send(new { type = "apps", act, err = "Could not start the uninstaller: " + ex.Message }); }
+                System.Threading.Thread.Sleep(1500);
+                Send(new { type = "apps", act = "installed", list = InstalledApps() });
+            }
+            else if (act == "startup") Send(new { type = "apps", act, list = StartupItems() });
+            else if (act == "toggle")
+            {
+                var id = (m["id"] as string).Split('|');
+                var on = (bool)m["on"];
+                var hive = id[0] == "HKLM" ? Microsoft.Win32.Registry.LocalMachine : Microsoft.Win32.Registry.CurrentUser;
+                using (var k = hive.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\" + id[1]))
+                {
+                    var b = new byte[12]; b[0] = (byte)(on ? 2 : 3);
+                    if (!on) BitConverter.GetBytes(DateTime.Now.ToFileTime()).CopyTo(b, 4);
+                    k.SetValue(id[2], b, Microsoft.Win32.RegistryValueKind.Binary);
+                }
+                Send(new { type = "apps", act = "startup", list = StartupItems() });
+            }
+        }
+
+        static List<Dictionary<string, object>> InstalledApps()
+        {
+            var list = new List<Dictionary<string, object>>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var (hive, hn, path) in new[] { (Microsoft.Win32.Registry.LocalMachine, "HKLM", @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"), (Microsoft.Win32.Registry.LocalMachine, "HKLM", @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"), (Microsoft.Win32.Registry.CurrentUser, "HKCU", @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall") })
+                using (var k = hive.OpenSubKey(path))
+                {
+                    if (k == null) continue;
+                    foreach (var n in k.GetSubKeyNames())
+                        using (var a = k.OpenSubKey(n))
+                        {
+                            var name = a?.GetValue("DisplayName") as string;
+                            var un = a?.GetValue("UninstallString") as string;
+                            if (string.IsNullOrWhiteSpace(name) || un == null || Convert.ToInt32(a.GetValue("SystemComponent") ?? 0) == 1 || a.GetValue("ParentKeyName") != null || n == "WhatOS" || !seen.Add(name)) continue;
+                            list.Add(new Dictionary<string, object> { ["key"] = hn + "|" + path + "|" + n, ["name"] = name.Trim(), ["pub"] = a.GetValue("Publisher") as string, ["ver"] = a.GetValue("DisplayVersion") as string, ["size"] = Convert.ToDouble(a.GetValue("EstimatedSize") ?? 0) * 1024, ["un"] = un, ["quiet"] = a.GetValue("QuietUninstallString") as string });
+                        }
+                }
+            return list.OrderBy(x => (string)x["name"], StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        static List<Dictionary<string, object>> StartupItems()
+        {
+            var list = new List<Dictionary<string, object>>();
+            bool On(Microsoft.Win32.RegistryKey hive, string ap, string name)
+            {
+                using (var k = hive.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\" + ap))
+                    return !(k?.GetValue(name) is byte[] b && b.Length > 0 && (b[0] & 1) == 1);
+            }
+            foreach (var (hive, hn, path, ap) in new[] { (Microsoft.Win32.Registry.CurrentUser, "HKCU", @"Software\Microsoft\Windows\CurrentVersion\Run", "Run"), (Microsoft.Win32.Registry.LocalMachine, "HKLM", @"Software\Microsoft\Windows\CurrentVersion\Run", "Run"), (Microsoft.Win32.Registry.LocalMachine, "HKLM", @"Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Run", "Run32") })
+                using (var k = hive.OpenSubKey(path))
+                    if (k != null) foreach (var n in k.GetValueNames()) if (n.Length > 0) list.Add(new Dictionary<string, object> { ["id"] = hn + "|" + ap + "|" + n, ["name"] = n, ["cmd"] = k.GetValue(n)?.ToString(), ["on"] = On(hive, ap, n), ["all"] = hn == "HKLM" });
+            foreach (var (dir, hive, hn) in new[] { (Environment.GetFolderPath(Environment.SpecialFolder.Startup), Microsoft.Win32.Registry.CurrentUser, "HKCU"), (Environment.GetFolderPath(Environment.SpecialFolder.CommonStartup), Microsoft.Win32.Registry.LocalMachine, "HKLM") })
+                try { foreach (var f in Directory.GetFiles(dir).Where(x => !x.EndsWith("desktop.ini", StringComparison.OrdinalIgnoreCase))) list.Add(new Dictionary<string, object> { ["id"] = hn + "|StartupFolder|" + Path.GetFileName(f), ["name"] = Path.GetFileNameWithoutExtension(f), ["cmd"] = f, ["on"] = On(hive, "StartupFolder", Path.GetFileName(f)), ["all"] = hn == "HKLM" }); } catch { }
+            return list.OrderBy(x => (string)x["name"], StringComparer.OrdinalIgnoreCase).ToList();
         }
 
         static PerformanceCounter cpuC;
