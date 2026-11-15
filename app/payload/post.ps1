@@ -7,6 +7,8 @@ if(Test-Path 'C:\Program Files\WhatOS\WhatOS.exe'){
  Register-ScheduledTask -TaskName WhatOSUpdateCheck -Action $a -Trigger $tr -Principal (New-ScheduledTaskPrincipal -GroupId 'BUILTIN\Users') -Settings (New-ScheduledTaskSettingsSet -StartWhenAvailable) -Force | Out-Null
  "update check task $([bool](Get-ScheduledTask -TaskName WhatOSUpdateCheck -EA 0))" | Add-Content C:\whatos-post.txt
  $sh=(New-Object -ComObject WScript.Shell).CreateShortcut("$env:PUBLIC\Desktop\WhatOS.lnk"); $sh.TargetPath='C:\Program Files\WhatOS\WhatOS.exe'; $sh.Save()
+ New-Item 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce' -Force | Out-Null
+ Set-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce' WhatOSRecommended '"C:\Program Files\WhatOS\WhatOS.exe" --apply-recommended'
  $e='C:\Program Files\WhatOS\WhatOSGame.exe'
  if(Test-Path $e){
   Register-ScheduledTask WhatOSGameMode -Action (New-ScheduledTaskAction -Execute $e) -Trigger (New-ScheduledTaskTrigger -AtLogOn) -Settings (New-ScheduledTaskSettingsSet -ExecutionTimeLimit 0 -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -Priority 4) -Principal (New-ScheduledTaskPrincipal -GroupId 'BUILTIN\Administrators' -RunLevel Highest) -Force | Out-Null

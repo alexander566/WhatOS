@@ -141,6 +141,15 @@ namespace WhatOS
             Args = args;
             var ci = Array.IndexOf(args, "--clean");
             if (ci >= 0) { Cleaner.Clean((ci + 1 < args.Length ? args[ci + 1] : "temp,shader").Split(',')); return; }
+            if (args.Contains("--apply-recommended"))
+            {
+                if (MainForm.Manage("-Action status") is Dictionary<string, object> st && st["groups"] is object[] gs)
+                {
+                    var ids = gs.OfType<Dictionary<string, object>>().Where(g => g["rec"] is bool r && r && (string)g["state"] == "off").Select(g => (string)g["id"]).ToArray();
+                    if (ids.Length > 0) MainForm.Manage("-Action applyset -Id \"" + string.Join(",", ids) + "\"");
+                }
+                return;
+            }
             if (ApplyPending()) return;
             if (Install()) return;
             AppDomain.CurrentDomain.AssemblyResolve += (s, e) =>
@@ -425,7 +434,7 @@ Start-Process powershell -WindowStyle Hidden -ArgumentList '-NoProfile','-Comman
 
         const string ManifestUrl = "https://raw.githubusercontent.com/alexander566/WhatOS/main/app/payload/tweaks.json";
 
-        object Manage(string args)
+        public static object Manage(string args)
         {
             var pay = Path.Combine(Program.Work, "payload");
             Directory.CreateDirectory(pay);
@@ -442,7 +451,7 @@ Start-Process powershell -WindowStyle Hidden -ArgumentList '-NoProfile','-Comman
             p.WaitForExit();
             File.AppendAllText(Path.Combine(Program.Work, "manage.log"), DateTime.Now + " " + args + "\r\n" + o + "\r\n");
             var last = o.Split('\n').Select(x => x.Trim()).LastOrDefault(x => x.StartsWith("{"));
-            return last == null ? null : json.DeserializeObject(last);
+            return last == null ? null : new JavaScriptSerializer().DeserializeObject(last);
         }
 
         void SendCached(string type, Func<object> f)
