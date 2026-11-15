@@ -139,6 +139,8 @@ namespace WhatOS
                 args = args.Where((x, i) => i != ai && i != ai + 1).ToArray();
             }
             Args = args;
+            var ci = Array.IndexOf(args, "--clean");
+            if (ci >= 0) { Cleaner.Clean((ci + 1 < args.Length ? args[ci + 1] : "temp,shader").Split(',')); return; }
             if (ApplyPending()) return;
             if (Install()) return;
             AppDomain.CurrentDomain.AssemblyResolve += (s, e) =>
@@ -369,6 +371,21 @@ namespace WhatOS
                             break;
                         }
                     case "apps": { var act = m["act"] as string; Task.Run(() => { try { Apps(act, m); } catch (Exception ex) { Send(new { type = "apps", act, err = ex.Message }); } }); break; }
+                    case "clean":
+                        {
+                            var act = m["act"] as string;
+                            Task.Run(() =>
+                            {
+                                try
+                                {
+                                    if (act == "scan") Send(new { type = "clean", act, sizes = Cleaner.Scan(), sched = Cleaner.Schedule() });
+                                    else if (act == "run") { var ids = ((System.Collections.IEnumerable)m["ids"]).Cast<object>().Select(x => x.ToString()).ToArray(); var freed = Cleaner.Clean(ids); Send(new { type = "clean", act, freed, sizes = Cleaner.Scan(), sched = Cleaner.Schedule() }); }
+                                    else if (act == "sched") { Cleaner.SetSchedule(m["when"] as string, Application.ExecutablePath); Send(new { type = "clean", act = "scan", sizes = Cleaner.Scan(), sched = Cleaner.Schedule() }); }
+                                }
+                                catch (Exception ex) { Send(new { type = "clean", act, err = ex.Message }); }
+                            });
+                            break;
+                        }
                     case "stats": if (statsBusy || WindowState == FormWindowState.Minimized) break; statsBusy = true; Task.Run(() => { try { try { Send(new { type = "stats", data = Stats() }); } catch (Exception ex) { Send(new { type = "stats", err = ex.Message }); } } finally { statsBusy = false; } }); break;
                     case "sysinfo": Task.Run(() => SendCached("sysinfo", SysInfo)); break;
                     case "health": Task.Run(() => SendCached("health", Health)); break;
@@ -921,5 +938,79 @@ $parts=@(Get-Partition -DiskNumber $d.Number | ?{ $_.Type -in 'Basic','IFS' } | 
             job.BeginOutputReadLine();
             job.BeginErrorReadLine();
         }
+    }
+}
+
+static class Cleaner
+{
+    static string E(string p) => Environment.ExpandEnvironmentVariables(p);
+    public static readonly Dictionary<string, string[]> Targets = new Dictionary<string, string[]>
+    {
+        ["temp"] = new[] { "%TEMP%", @"%SystemRoot%\Temp" },
+        ["shader"] = new[] { @"%LOCALAPPDATA%\D3DSCache", @"%LOCALAPPDATA%\NVIDIA\DXCache", @"%LOCALAPPDATA%\NVIDIA\GLCache", @"%LOCALAPPDATA%\NVIDIA Corporation\NV_Cache", @"%ProgramData%\NVIDIA Corporation\NV_Cache", @"%LOCALAPPDATA%\AMD\DxCache", @"%LOCALAPPDATA%\AMD\DxcCache", @"%LOCALAPPDATA%\AMD\VkCache", @"%LOCALAPPDATA%\AMD\GLCache", @"%USERPROFILE%\AppData\LocalLow\Intel\ShaderCache" },
+        ["wu"] = new[] { @"%SystemRoot%\SoftwareDistribution\Download" },
+        ["dorepo"] = new[] { @"%SystemRoot%\ServiceProfiles\NetworkService\AppData\Local\Microsoft\Windows\DeliveryOptimization\Cache" },
+        ["dumps"] = new[] { @"%SystemRoot%\Minidump", @"%LOCALAPPDATA%\CrashDumps", @"%ProgramData%\Microsoft\Windows\WER\ReportArchive", @"%ProgramData%\Microsoft\Windows\WER\ReportQueue", @"%LOCALAPPDATA%\Microsoft\Windows\WER\ReportArchive" },
+        ["thumbs"] = new[] { @"%LOCALAPPDATA%\Microsoft\Windows\Explorer" },
+    };
+    static bool Match(string id, string f) => id != "thumbs" || Path.GetFileName(f).StartsWith("thumbcache_", StringComparison.OrdinalIgnoreCase) || Path.GetFileName(f).StartsWith("iconcache_", StringComparison.OrdinalIgnoreCase);
+    static IEnumerable<string> Files(string dir)
+    {
+        var st = new Stack<string>(); st.Push(dir);
+        while (st.Count > 0)
+        {
+            var d = st.Pop(); string[] fs = null, ds = null;
+            try { fs = Directory.GetFiles(d); ds = Directory.GetDirectories(d); } catch { continue; }
+            foreach (var f in fs) yield return f;
+            foreach (var x in ds) try { if ((File.GetAttributes(x) & FileAttributes.ReparsePoint) == 0) st.Push(x); } catch { }
+        }
+    }
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential, Pack = 4)] struct RBI { public int cbSize; public long Size; public long Items; }
+    [System.Runtime.InteropServices.DllImport("shell32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)] static extern int SHQueryRecycleBin(string root, ref RBI i);
+    [System.Runtime.InteropServices.DllImport("shell32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)] static extern int SHEmptyRecycleBin(IntPtr h, string root, int flags);
+    public static Dictionary<string, double> Scan()
+    {
+        var r = new Dictionary<string, double>();
+        foreach (var t in Targets)
+        {
+            long n = 0;
+            foreach (var d in t.Value.Select(E).Where(Directory.Exists)) foreach (var f in Files(d)) if (Match(t.Key, f)) try { n += new FileInfo(f).Length; } catch { }
+            if (t.Key == "dumps") try { var md = E(@"%SystemRoot%\MEMORY.DMP"); if (File.Exists(md)) n += new FileInfo(md).Length; } catch { }
+            r[t.Key] = n;
+        }
+        var rb = new RBI { cbSize = System.Runtime.InteropServices.Marshal.SizeOf(typeof(RBI)) };
+        r["recycle"] = SHQueryRecycleBin(null, ref rb) == 0 ? rb.Size : 0;
+        return r;
+    }
+    public static Dictionary<string, double> Clean(string[] ids)
+    {
+        var before = Scan();
+        foreach (var id in ids)
+        {
+            if (id == "recycle") { try { SHEmptyRecycleBin(IntPtr.Zero, null, 7); } catch { } continue; }
+            if (!Targets.TryGetValue(id, out var dirs)) continue;
+            if (id == "wu" || id == "dorepo") foreach (var sv in new[] { "wuauserv", "bits", "dosvc" }) try { using (var sc = new System.ServiceProcess.ServiceController(sv)) if (sc.Status == System.ServiceProcess.ServiceControllerStatus.Running) { sc.Stop(); sc.WaitForStatus(System.ServiceProcess.ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(20)); } } catch { }
+            foreach (var d in dirs.Select(E).Where(Directory.Exists))
+            {
+                foreach (var f in Files(d).ToList()) if (Match(id, f)) try { File.SetAttributes(f, FileAttributes.Normal); File.Delete(f); } catch { }
+                if (id != "thumbs") foreach (var x in Directory.GetDirectories(d, "*", SearchOption.AllDirectories).OrderByDescending(x => x.Length)) try { Directory.Delete(x); } catch { }
+            }
+            if (id == "dumps") try { File.Delete(E(@"%SystemRoot%\MEMORY.DMP")); } catch { }
+        }
+        var after = Scan();
+        return ids.Where(after.ContainsKey).ToDictionary(i => i, i => Math.Max(0, before[i] - after[i]));
+    }
+    public static string Schedule()
+    {
+        try { using (var p = Process.Start(new ProcessStartInfo("schtasks.exe", "/query /tn WhatOSClean /xml") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true })) { var o = p.StandardOutput.ReadToEnd(); p.WaitForExit(); return p.ExitCode != 0 ? "off" : o.Contains("<ScheduleByMonth>") ? "monthly" : o.Contains("<ScheduleByWeek>") ? "weekly" : "daily"; } }
+        catch { return "off"; }
+    }
+    public static void SetSchedule(string when, string exe)
+    {
+        var inst = Path.Combine(WhatOS.Program.InstDir, "WhatOS.exe");
+        if (File.Exists(inst)) exe = inst;
+        string a = when == "off" ? "/delete /tn WhatOSClean /f" : "/create /tn WhatOSClean /f /rl highest /tr \"\\\"" + exe + "\\\" --clean temp,shader,dumps\" " + (when == "monthly" ? "/sc monthly /d 1 /st 12:00" : when == "daily" ? "/sc daily /st 12:00" : "/sc weekly /d SUN /st 12:00");
+        using (var p = Process.Start(new ProcessStartInfo("schtasks.exe", a) { UseShellExecute = false, CreateNoWindow = true })) p.WaitForExit();
+        if (when != "off") using (var p = Process.Start(new ProcessStartInfo("powershell.exe", "-NoProfile -Command \"$s=Get-ScheduledTask WhatOSClean; $s.Settings.StartWhenAvailable=$true; $s.Settings.DisallowStartIfOnBatteries=$false; $s | Set-ScheduledTask | Out-Null\"") { UseShellExecute = false, CreateNoWindow = true })) p.WaitForExit();
     }
 }

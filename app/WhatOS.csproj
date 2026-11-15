@@ -18,6 +18,7 @@
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
     <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Management" />
+    <Reference Include="System.ServiceProcess" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="ui\*" LogicalName="ui.%(Filename)%(Extension)" />

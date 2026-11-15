@@ -90,11 +90,12 @@ function canNext(){
   if(p==="confirm")return S.ok; return true;
 }
 
-const IC={dash:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',game:'<path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"/><path d="M17.3 5H6.7a4 4 0 0 0-4 3.6L2 15a3 3 0 0 0 5.2 2.2L9 15h6l1.8 2.2A3 3 0 0 0 22 15l-.7-6.4A4 4 0 0 0 17.3 5z"/>',fav:'<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3l-5.5 2.9 1-6.2L3 9.6l6.2-.9z"/>',tweaks:'<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',perf:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',install:'<path d="M12 3v12M7 10l5 5 5-5M4 19h16"/>',backup:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',apps:'<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>'};
+const IC={dash:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',game:'<path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"/><path d="M17.3 5H6.7a4 4 0 0 0-4 3.6L2 15a3 3 0 0 0 5.2 2.2L9 15h6l1.8 2.2A3 3 0 0 0 22 15l-.7-6.4A4 4 0 0 0 17.3 5z"/>',fav:'<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3l-5.5 2.9 1-6.2L3 9.6l6.2-.9z"/>',tweaks:'<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',perf:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',install:'<path d="M12 3v12M7 10l5 5 5-5M4 19h16"/>',backup:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',apps:'<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>',clean:'<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/>'};
 const svg=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg>`;
-const NAVG=[["Overview",[["dash","Dashboard"],["game","Game Mode"],["fav","Starred"]]],["Speed up",[["tweaks","Tweaks"],["perf","Performance"]]],["Apps",[["apps","Apps"]]],["Windows",[["install","Install Windows"],["backup","Backup & history"]]]];
+const NAVG=[["Overview",[["dash","Dashboard"],["game","Game Mode"],["fav","Starred"]]],["Speed up",[["tweaks","Tweaks"],["perf","Performance"],["clean","Clean"]]],["Apps",[["apps","Apps"]]],["Windows",[["install","Install Windows"],["backup","Backup & history"]]]];
 const NAV=NAVG.flatMap(g=>g[1]);
 let FAV=new Set();
+const CL={items:[["temp","Temporary files","Leftovers from installers and apps",1],["wu","Windows Update downloads","Update files Windows already installed",1],["dorepo","Delivery Optimization cache","Update pieces Windows keeps to share with other PCs",1],["dumps","Crash dumps and error reports","Saved after a crash or app error",1],["shader","Shader cache","NVIDIA, AMD, Intel and DirectX. Games rebuild it on first launch, so clear it after a driver update or when games stutter",0],["thumbs","Thumbnail cache","Picture previews in File Explorer. Rebuilt when needed",0],["recycle","Recycle Bin","Files you deleted",0]],sel:null,sizes:null,busy:false,freed:null,sched:null};
 const A={tab:"get",sel:new Set(),prog:{},inst:null,cat:null,list:null,su:null,q:"",busy:false,sure:null,err:null};
 const STAR='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3l-5.5 2.9 1-6.2L3 9.6l6.2-.9z"/></svg>';
 const T={tick:0,page:"dash",cat:"All",stats:null,sys:null,health:null,hb:false,q:""};
@@ -199,6 +200,18 @@ function renderTW(){
     P.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{const k=b.dataset.rm;if(A.sure!==k){A.sure=k;renderTW();return}A.sure=null;A.removing=k;host.send({cmd:"apps",act:"remove",key:k});renderTW()});
     P.querySelectorAll("[data-su]").forEach(b=>b.onclick=()=>{const it=A.su.find(x=>x.id===b.dataset.su);host.send({cmd:"apps",act:"toggle",id:it.id,on:!it.on});it.on=!it.on;renderTW()});
   }
+  else if(T.page==="clean"){
+    if(!CL.sizes&&!CL.asked){CL.asked=1;host.send({cmd:"clean",act:"scan"})}
+    if(!CL.sel)CL.sel=new Set(CL.items.filter(i=>i[3]).map(i=>i[0]));
+    const tot=CL.sizes?[...CL.sel].reduce((a,k)=>a+(CL.sizes[k]||0),0):0,fr=CL.freed?Object.values(CL.freed).reduce((a,b)=>a+b,0):null;
+    P.innerHTML=`<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><h1>Clean</h1><p class="sub">Free up space. Your own files are never touched${CL.sel.has("recycle")?" (except the Recycle Bin)":""}.</p></div><button class="btn pri" id="clgo" ${!CL.sizes||!tot||CL.busy?"disabled":""}>${CL.busy?"Cleaning…":CL.sizes?(tot?"Clean "+fmtB(tot):"Nothing to clean"):"Scanning…"}</button></div>
+    ${fr!=null?`<div class="box" style="flex-direction:row;align-items:center;gap:12px"><span class="dot" style="background:var(--ok)"></span><b>Freed ${fmtB(fr)}</b><span class="sub">Some files were in use and stay until next time.</span></div>`:""}
+    <div class="list">${CL.items.map(([k,n,d])=>`<label class="row arow"><input type="checkbox" class="ack" data-cl="${k}" ${CL.sel.has(k)?"checked":""} ${CL.busy?"disabled":""}><div class="t"><b>${n}</b><small>${d}</small></div><span class="st" style="min-width:70px;text-align:right">${CL.sizes?fmtB(CL.sizes[k]||0):"…"}</span></label>`).join("")}</div>
+    <h2>Clean automatically</h2><div class="box"><span class="sub">Clears temporary files, shader cache and crash dumps by itself. Runs at noon, or the next time the PC is on.</span><div class="chips">${[["off","Off"],["weekly","Every week"],["monthly","Every month"]].map(([v,l])=>`<button class="chip ${CL.sched===v?"on":""}" data-cs="${v}" ${CL.sched==null?"disabled":""}>${l}</button>`).join("")}</div></div>`;
+    P.querySelectorAll("[data-cl]").forEach(c=>c.onchange=()=>{c.checked?CL.sel.add(c.dataset.cl):CL.sel.delete(c.dataset.cl);renderTW()});
+    const cg=$("#clgo");if(cg)cg.onclick=()=>{CL.busy=true;CL.freed=null;host.send({cmd:"clean",act:"run",ids:[...CL.sel]});renderTW()};
+    P.querySelectorAll("[data-cs]").forEach(b=>b.onclick=()=>{CL.sched=b.dataset.cs;host.send({cmd:"clean",act:"sched",when:b.dataset.cs});renderTW()});
+  }
   else if(T.page==="backup"){const x=M.diff;
     const uninBox=`<div class="box" ${T.unin?'style="border-color:var(--danger)"':""}><b>Uninstall WhatOS</b><span class="sub">Turns every tweak off, removes Game Mode and the WhatOS app from this PC.</span><button class="btn" id="unin" style="align-self:flex-start;color:var(--danger)" ${T.uninBusy?"disabled":""}>${T.uninBusy?"Removing…":T.uninSure?"Click again to uninstall":"Uninstall WhatOS"}</button></div>`;
     P.innerHTML=`<h1>Backup &amp; history</h1>${T.unin?uninBox:""}
@@ -291,6 +304,7 @@ function failed(msg){
 window.chrome.webview.addEventListener("message",e=>{const m=e.data;
   if(m.type==="last"){S.last=m.picks;if(PAGES[S.p]==="welcome")render()}
   if(m.type==="selfupd"){const u=$("#upd");if(m.updated&&m.updated!=="dev"){u.innerHTML=`<span>Updated to ${esc(m.updated)}</span>`;setTimeout(()=>{if(u.querySelector("span"))u.innerHTML=""},10000)}if(m.ready){u.innerHTML=`<button id="updrs">${esc(m.ready)} ready · Restart</button>`;$("#updrs").onclick=()=>host.send({cmd:"selfrestart"})}}
+  if(m.type==="clean"){CL.busy=false;if(m.err)alert(m.err);else{CL.sizes=m.sizes;if(m.sched)CL.sched=m.sched;if(m.freed)CL.freed=m.freed}if(T.page==="clean")renderTW()}
   if(m.type==="apps"){if(m.err){A.err=m.err;A.busy=false;A.removing=null}else if(m.act==="catalog"){A.cat=m.catalog;if(m.installed)A.inst=m.installed}else if(m.act==="installed"){A.list=m.list;A.removing=null}else if(m.act==="startup")A.su=m.list;if(T.page==="apps"&&!(document.activeElement&&document.activeElement.id==="aq"))renderTW()}
   if(m.type==="appsprog"){if(m.st==="end"){A.busy=false;A.list=null;A.askedL=0}else{A.prog[m.id]=m.st;if(m.st==="done"){A.inst=(A.inst||[]).concat(m.id)}}if(T.page==="apps")renderTW()}
   if(m.type==="fav"){FAV=new Set(m.ids||[]);renderTW()}
