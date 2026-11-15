@@ -387,6 +387,7 @@ namespace WhatOS
                             break;
                         }
                     case "power": { var act = m["act"] as string; Task.Run(() => { try { Send(new { type = "power", data = PowerPlans.Do(act, m) }); } catch (Exception ex) { Send(new { type = "power", err = ex.Message }); } }); break; }
+                    case "net": { var act = m["act"] as string; Task.Run(() => { try { Send(new { type = "net", act, data = Net.Do(act, m) }); } catch (Exception ex) { Send(new { type = "net", act, err = ex.Message }); } }); break; }
                     case "stats": if (statsBusy || WindowState == FormWindowState.Minimized) break; statsBusy = true; Task.Run(() => { try { try { Send(new { type = "stats", data = Stats() }); } catch (Exception ex) { Send(new { type = "stats", err = ex.Message }); } } finally { statsBusy = false; } }); break;
                     case "sysinfo": Task.Run(() => SendCached("sysinfo", SysInfo)); break;
                     case "health": Task.Run(() => SendCached("health", Health)); break;
@@ -1058,5 +1059,83 @@ static class PowerPlans
             opts.Add(new { id = o[0], name = o[1], desc = o[2], on = Convert.ToInt64(q.Groups[1].Value, 16).ToString() == o[5] });
         }
         return new { plans, opts, laptop = Laptop };
+    }
+}
+
+static class Net
+{
+    public static readonly string[][] Dns =
+    {
+        new[] { "cloudflare", "Cloudflare", "1.1.1.1", "1.0.0.1", "Fast and private" },
+        new[] { "google", "Google", "8.8.8.8", "8.8.4.4", "Fast and reliable" },
+        new[] { "quad9", "Quad9", "9.9.9.9", "149.112.112.112", "Blocks known malware sites" },
+        new[] { "adguard", "AdGuard", "94.140.14.14", "94.140.15.15", "Blocks ads and trackers on every app" },
+        new[] { "opendns", "OpenDNS", "208.67.222.222", "208.67.220.220", "Cisco's DNS" },
+    };
+    static System.Net.NetworkInformation.NetworkInterface[] Up() => System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces().Where(n => n.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up && n.NetworkInterfaceType != System.Net.NetworkInformation.NetworkInterfaceType.Loopback && n.NetworkInterfaceType != System.Net.NetworkInformation.NetworkInterfaceType.Tunnel && n.GetIPProperties().GatewayAddresses.Any(g => g.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)).ToArray();
+    static double DnsMs(string server)
+    {
+        var q = new byte[] { 0x12, 0x34, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 3, (byte)'w', (byte)'w', (byte)'w', 6, (byte)'g', (byte)'o', (byte)'o', (byte)'g', (byte)'l', (byte)'e', 3, (byte)'c', (byte)'o', (byte)'m', 0, 0, 1, 0, 1 };
+        var times = new List<double>();
+        for (var i = 0; i < 4; i++)
+            try
+            {
+                using (var u = new System.Net.Sockets.UdpClient())
+                {
+                    u.Client.ReceiveTimeout = 1500;
+                    u.Connect(System.Net.IPAddress.Parse(server), 53);
+                    var sw = Stopwatch.StartNew();
+                    u.Send(q, q.Length);
+                    System.Net.IPEndPoint ep = null;
+                    u.Receive(ref ep);
+                    times.Add(sw.Elapsed.TotalMilliseconds);
+                }
+            }
+            catch { }
+        if (times.Count == 0) return -1;
+        times.Sort();
+        return Math.Round(times[times.Count / 2]);
+    }
+    static void Ps(string c) { using (var p = Process.Start(new ProcessStartInfo("powershell.exe", "-NoProfile -Command \"" + c + "\"") { UseShellExecute = false, CreateNoWindow = true })) p.WaitForExit(30000); }
+    static void Cmd(string exe, string a) { using (var p = Process.Start(new ProcessStartInfo(exe, a) { UseShellExecute = false, CreateNoWindow = true })) p.WaitForExit(30000); }
+    public static object Do(string act, Dictionary<string, object> m)
+    {
+        if (act == "set")
+        {
+            var id = (string)m["id"];
+            var d = Dns.FirstOrDefault(x => x[0] == id);
+            foreach (var n in Up())
+            {
+                var ix = n.GetIPProperties().GetIPv4Properties()?.Index ?? -1;
+                if (ix < 0) continue;
+                Ps(d == null ? "Set-DnsClientServerAddress -InterfaceIndex " + ix + " -ResetServerAddresses" : "Set-DnsClientServerAddress -InterfaceIndex " + ix + " -ServerAddresses " + d[2] + "," + d[3]);
+            }
+            Cmd("ipconfig.exe", "/flushdns");
+        }
+        else if (act == "flush") Cmd("ipconfig.exe", "/flushdns");
+        else if (act == "reset") { Cmd("netsh.exe", "winsock reset"); Cmd("netsh.exe", "int ip reset"); Cmd("ipconfig.exe", "/flushdns"); }
+        if (act == "test")
+        {
+            var cur = Up().SelectMany(n => n.GetIPProperties().DnsAddresses).Where(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).Select(a => a.ToString()).FirstOrDefault();
+            var res = Dns.ToDictionary(x => x[0], x => DnsMs(x[2]));
+            if (cur != null && !Dns.Any(x => x[2] == cur || x[3] == cur)) res["auto"] = DnsMs(cur);
+            return res;
+        }
+        if (act == "ping")
+        {
+            var r = new List<double>(); var lost = 0;
+            using (var p = new System.Net.NetworkInformation.Ping())
+                for (var i = 0; i < 20; i++) { try { var x = p.Send("1.1.1.1", 1000); if (x.Status == System.Net.NetworkInformation.IPStatus.Success) r.Add(x.RoundtripTime); else lost++; } catch { lost++; } System.Threading.Thread.Sleep(100); }
+            var jit = r.Count > 1 ? r.Zip(r.Skip(1), (a, b) => Math.Abs(a - b)).Average() : 0;
+            return new { avg = r.Count > 0 ? Math.Round(r.Average(), 1) : -1, jitter = Math.Round(jit, 1), loss = lost * 5 };
+        }
+        var list = Up().Select(n =>
+        {
+            var ip = n.GetIPProperties();
+            var dns = ip.DnsAddresses.Where(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).Select(a => a.ToString()).ToArray();
+            var prov = Dns.FirstOrDefault(x => dns.Contains(x[2]) || dns.Contains(x[3]));
+            return new { name = n.Name, desc = n.Description, wifi = n.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Wireless80211, speed = n.Speed / 1000000, ip = ip.UnicastAddresses.Where(a => a.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).Select(a => a.Address.ToString()).FirstOrDefault(), dns, dnsId = prov?[0] ?? "auto" };
+        }).ToArray();
+        return new { adapters = list, providers = Dns.Select(x => new { id = x[0], name = x[1], ips = x[2] + ", " + x[3], desc = x[4] }), restart = act == "reset" };
     }
 }
