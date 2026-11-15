@@ -388,6 +388,7 @@ namespace WhatOS
                         }
                     case "power": { var act = m["act"] as string; Task.Run(() => { try { Send(new { type = "power", data = PowerPlans.Do(act, m) }); } catch (Exception ex) { Send(new { type = "power", err = ex.Message }); } }); break; }
                     case "net": { var act = m["act"] as string; Task.Run(() => { try { Send(new { type = "net", act, data = Net.Do(act, m) }); } catch (Exception ex) { Send(new { type = "net", act, err = ex.Message }); } }); break; }
+                    case "svc": { var act = m["act"] as string; Task.Run(() => { try { Send(new { type = "svc", data = Svc.Do(act, m, json, Program.Text("payload.services.json")) }); } catch (Exception ex) { Send(new { type = "svc", err = ex.Message }); } }); break; }
                     case "stats": if (statsBusy || WindowState == FormWindowState.Minimized) break; statsBusy = true; Task.Run(() => { try { try { Send(new { type = "stats", data = Stats() }); } catch (Exception ex) { Send(new { type = "stats", err = ex.Message }); } } finally { statsBusy = false; } }); break;
                     case "sysinfo": Task.Run(() => SendCached("sysinfo", SysInfo)); break;
                     case "health": Task.Run(() => SendCached("health", Health)); break;
@@ -1137,5 +1138,37 @@ static class Net
             return new { name = n.Name, desc = n.Description, wifi = n.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Wireless80211, speed = n.Speed / 1000000, ip = ip.UnicastAddresses.Where(a => a.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).Select(a => a.Address.ToString()).FirstOrDefault(), dns, dnsId = prov?[0] ?? "auto" };
         }).ToArray();
         return new { adapters = list, providers = Dns.Select(x => new { id = x[0], name = x[1], ips = x[2] + ", " + x[3], desc = x[4] }), restart = act == "reset" };
+    }
+}
+
+static class Svc
+{
+    static readonly string Orig = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "WhatOS", "services-orig.json");
+    static Microsoft.Win32.RegistryKey Key(string n, bool w = false) => Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\" + n, w);
+    static int Start(string n) { using (var k = Key(n)) return k == null ? -1 : Convert.ToInt32(k.GetValue("Start") ?? -1); }
+    static void SetStart(string n, int v, System.Web.Script.Serialization.JavaScriptSerializer js)
+    {
+        var o = File.Exists(Orig) ? js.Deserialize<Dictionary<string, int>>(File.ReadAllText(Orig)) : new Dictionary<string, int>();
+        if (!o.ContainsKey(n)) { o[n] = Start(n); Directory.CreateDirectory(Path.GetDirectoryName(Orig)); File.WriteAllText(Orig, js.Serialize(o)); }
+        var mode = v == 2 ? "auto" : v == 3 ? "demand" : "disabled";
+        using (var p = Process.Start(new ProcessStartInfo("sc.exe", "config \"" + n + "\" start= " + mode) { UseShellExecute = false, CreateNoWindow = true })) { p.WaitForExit(); if (p.ExitCode != 0) using (var k = Key(n, true)) k?.SetValue("Start", v, Microsoft.Win32.RegistryValueKind.DWord); }
+        if (v == 4) try { using (var sc = new System.ServiceProcess.ServiceController(n)) if (sc.Status == System.ServiceProcess.ServiceControllerStatus.Running) sc.Stop(); } catch { }
+    }
+    static string State(string n) { try { using (var sc = new System.ServiceProcess.ServiceController(n)) return sc.Status == System.ServiceProcess.ServiceControllerStatus.Running ? "running" : "stopped"; } catch { return "stopped"; } }
+    public static object Do(string act, Dictionary<string, object> m, System.Web.Script.Serialization.JavaScriptSerializer js, string cat)
+    {
+        if (act == "set") SetStart((string)m["id"], Convert.ToInt32(m["v"]), js);
+        else if (act == "restore" && File.Exists(Orig)) { foreach (var kv in js.Deserialize<Dictionary<string, int>>(File.ReadAllText(Orig))) if (kv.Value >= 2) SetStart(kv.Key, kv.Value, js); File.Delete(Orig); }
+        var list = new List<object>();
+        foreach (Dictionary<string, object> x in (object[])js.DeserializeObject(cat))
+        {
+            var n = (string)x["id"]; var st = Start(n);
+            if (st < 0) continue;
+            list.Add(new { id = n, name = x["name"], desc = x["desc"], cat = x["cat"], start = st, state = State(n) });
+        }
+        object all = null;
+        if (m.ContainsKey("all") && (bool)m["all"])
+            all = System.ServiceProcess.ServiceController.GetServices().OrderBy(x => x.DisplayName).Select(x => new { id = x.ServiceName, name = x.DisplayName, start = Start(x.ServiceName), state = x.Status == System.ServiceProcess.ServiceControllerStatus.Running ? "running" : "stopped" }).Where(x => x.start >= 2).ToList();
+        return new { list, all, changed = File.Exists(Orig) };
     }
 }

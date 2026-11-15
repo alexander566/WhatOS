@@ -1,0 +1,296 @@
+[
+{
+"cat": "Printing & scanning",
+"id": "Spooler",
+"name": "Print Spooler",
+"desc": "Needed to print. Turn off if you have no printer"
+},
+{
+"cat": "Printing & scanning",
+"id": "PrintNotify",
+"name": "Printer notifications",
+"desc": "Printer status pop-ups"
+},
+{
+"cat": "Printing & scanning",
+"id": "stisvc",
+"name": "Scanners and cameras (WIA)",
+"desc": "Needed for scanners and some webcams"
+},
+{
+"cat": "Printing & scanning",
+"id": "Fax",
+"name": "Fax",
+"desc": "Sending faxes"
+},
+{
+"cat": "Xbox",
+"id": "XblAuthManager",
+"name": "Xbox Live sign-in",
+"desc": "Needed for Xbox app and Game Pass games"
+},
+{
+"cat": "Xbox",
+"id": "XblGameSave",
+"name": "Xbox cloud saves",
+"desc": "Syncs saves for Xbox and Game Pass games"
+},
+{
+"cat": "Xbox",
+"id": "XboxNetApiSvc",
+"name": "Xbox networking",
+"desc": "Xbox party chat and multiplayer"
+},
+{
+"cat": "Xbox",
+"id": "XboxGipSvc",
+"name": "Xbox accessories",
+"desc": "Needed for Xbox controllers and headsets"
+},
+{
+"cat": "Bluetooth & devices",
+"id": "bthserv",
+"name": "Bluetooth",
+"desc": "Needed for Bluetooth mice, headsets and controllers"
+},
+{
+"cat": "Bluetooth & devices",
+"id": "BTAGService",
+"name": "Bluetooth audio",
+"desc": "Bluetooth headsets with microphone"
+},
+{
+"cat": "Bluetooth & devices",
+"id": "TabletInputService",
+"name": "Touch keyboard and emoji",
+"desc": "Touch keyboard, pen and the emoji panel (Win + .)"
+},
+{
+"cat": "Bluetooth & devices",
+"id": "WbioSrvc",
+"name": "Fingerprint and face sign-in",
+"desc": "Needed for Windows Hello fingerprint or face"
+},
+{
+"cat": "Bluetooth & devices",
+"id": "SCardSvr",
+"name": "Smart cards",
+"desc": "Smart card readers"
+},
+{
+"cat": "Bluetooth & devices",
+"id": "ScDeviceEnum",
+"name": "Smart card devices",
+"desc": "Smart card readers"
+},
+{
+"cat": "Bluetooth & devices",
+"id": "SEMgrSvc",
+"name": "Payments and NFC",
+"desc": "Tap-to-pay with NFC"
+},
+{
+"cat": "Remote access",
+"id": "RemoteRegistry",
+"name": "Remote registry",
+"desc": "Lets other PCs change this PC's settings. Rarely needed"
+},
+{
+"cat": "Remote access",
+"id": "TermService",
+"name": "Remote Desktop",
+"desc": "Connect to this PC with Remote Desktop"
+},
+{
+"cat": "Remote access",
+"id": "SessionEnv",
+"name": "Remote Desktop settings",
+"desc": "Part of Remote Desktop"
+},
+{
+"cat": "Remote access",
+"id": "UmRdpService",
+"name": "Remote Desktop devices",
+"desc": "Part of Remote Desktop"
+},
+{
+"cat": "Remote access",
+"id": "RemoteAccess",
+"name": "Routing and remote access",
+"desc": "VPN server and routing. Rarely needed"
+},
+{
+"cat": "Diagnostics & telemetry",
+"id": "DiagTrack",
+"name": "Telemetry",
+"desc": "Sends usage data to Microsoft"
+},
+{
+"cat": "Diagnostics & telemetry",
+"id": "dmwappushservice",
+"name": "Telemetry messages",
+"desc": "Part of telemetry"
+},
+{
+"cat": "Diagnostics & telemetry",
+"id": "WerSvc",
+"name": "Error reporting",
+"desc": "Sends crash reports to Microsoft"
+},
+{
+"cat": "Diagnostics & telemetry",
+"id": "DPS",
+"name": "Problem detection",
+"desc": "Finds problems for the troubleshooters"
+},
+{
+"cat": "Diagnostics & telemetry",
+"id": "WdiServiceHost",
+"name": "Diagnostic host",
+"desc": "Part of problem detection"
+},
+{
+"cat": "Diagnostics & telemetry",
+"id": "WdiSystemHost",
+"name": "Diagnostic system host",
+"desc": "Part of problem detection"
+},
+{
+"cat": "Diagnostics & telemetry",
+"id": "diagsvc",
+"name": "Diagnostics",
+"desc": "Runs troubleshooters"
+},
+{
+"cat": "Diagnostics & telemetry",
+"id": "PcaSvc",
+"name": "Program compatibility",
+"desc": "Warns about old programs that may not work"
+},
+{
+"cat": "Location & sync",
+"id": "lfsvc",
+"name": "Location",
+"desc": "Apps can find where you are"
+},
+{
+"cat": "Location & sync",
+"id": "MapsBroker",
+"name": "Offline maps",
+"desc": "Downloads maps for the Maps app"
+},
+{
+"cat": "Location & sync",
+"id": "PhoneSvc",
+"name": "Phone calls",
+"desc": "Calls through Phone Link"
+},
+{
+"cat": "Location & sync",
+"id": "CDPSvc",
+"name": "Connected devices",
+"desc": "Phone Link, nearby sharing and Continue on PC"
+},
+{
+"cat": "Location & sync",
+"id": "icssvc",
+"name": "Mobile hotspot",
+"desc": "Share this PC's internet as a hotspot"
+},
+{
+"cat": "Location & sync",
+"id": "SharedAccess",
+"name": "Internet sharing",
+"desc": "Share a connection with other devices"
+},
+{
+"cat": "Background work",
+"id": "SysMain",
+"name": "SysMain (Superfetch)",
+"desc": "Preloads apps into RAM. Helps hard drives, little use on SSDs"
+},
+{
+"cat": "Background work",
+"id": "WSearch",
+"name": "Search indexing",
+"desc": "Makes Start menu file search fast"
+},
+{
+"cat": "Background work",
+"id": "TrkWks",
+"name": "Link tracking",
+"desc": "Keeps shortcuts working when files move between PCs"
+},
+{
+"cat": "Background work",
+"id": "wisvc",
+"name": "Windows Insider",
+"desc": "Only for Insider preview builds"
+},
+{
+"cat": "Background work",
+"id": "RetailDemo",
+"name": "Store demo mode",
+"desc": "For display PCs in shops"
+},
+{
+"cat": "Background work",
+"id": "WMPNetworkSvc",
+"name": "Media sharing",
+"desc": "Shares music and videos on your network"
+},
+{
+"cat": "Background work",
+"id": "edgeupdate",
+"name": "Edge updater",
+"desc": "Keeps Microsoft Edge up to date"
+},
+{
+"cat": "Background work",
+"id": "edgeupdatem",
+"name": "Edge updater (on demand)",
+"desc": "Keeps Microsoft Edge up to date"
+},
+{
+"cat": "Background work",
+"id": "gupdate",
+"name": "Google updater",
+"desc": "Keeps Chrome up to date"
+},
+{
+"cat": "Background work",
+"id": "gupdatem",
+"name": "Google updater (on demand)",
+"desc": "Keeps Chrome up to date"
+},
+{
+"cat": "Network extras",
+"id": "iphlpsvc",
+"name": "IPv6 helper",
+"desc": "Tunnels for IPv6 over IPv4. Rarely needed"
+},
+{
+"cat": "Network extras",
+"id": "lmhosts",
+"name": "NetBIOS helper",
+"desc": "Old way of finding PCs on a network"
+},
+{
+"cat": "Network extras",
+"id": "NetTcpPortSharing",
+"name": "Net.Tcp port sharing",
+"desc": "For some business apps"
+},
+{
+"cat": "Network extras",
+"id": "AJRouter",
+"name": "AllJoyn router",
+"desc": "Old smart home devices"
+},
+{
+"cat": "Sign-in",
+"id": "wlidsvc",
+"name": "Microsoft account",
+"desc": "Needed to sign in with a Microsoft account and for the Store"
+}
+]
