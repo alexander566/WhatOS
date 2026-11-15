@@ -90,11 +90,12 @@ function canNext(){
   if(p==="confirm")return S.ok; return true;
 }
 
-const IC={dash:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',game:'<path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"/><path d="M17.3 5H6.7a4 4 0 0 0-4 3.6L2 15a3 3 0 0 0 5.2 2.2L9 15h6l1.8 2.2A3 3 0 0 0 22 15l-.7-6.4A4 4 0 0 0 17.3 5z"/>',fav:'<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3l-5.5 2.9 1-6.2L3 9.6l6.2-.9z"/>',tweaks:'<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',perf:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',install:'<path d="M12 3v12M7 10l5 5 5-5M4 19h16"/>',backup:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',apps:'<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>',clean:'<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/>'};
+const IC={dash:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',game:'<path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"/><path d="M17.3 5H6.7a4 4 0 0 0-4 3.6L2 15a3 3 0 0 0 5.2 2.2L9 15h6l1.8 2.2A3 3 0 0 0 22 15l-.7-6.4A4 4 0 0 0 17.3 5z"/>',fav:'<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3l-5.5 2.9 1-6.2L3 9.6l6.2-.9z"/>',tweaks:'<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',perf:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',install:'<path d="M12 3v12M7 10l5 5 5-5M4 19h16"/>',backup:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',apps:'<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>',clean:'<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/>',power:'<path d="M12 3v8"/><path d="M6.3 7.3a8 8 0 1 0 11.4 0"/>'};
 const svg=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg>`;
-const NAVG=[["Overview",[["dash","Dashboard"],["game","Game Mode"],["fav","Starred"]]],["Speed up",[["tweaks","Tweaks"],["perf","Performance"],["clean","Clean"]]],["Apps",[["apps","Apps"]]],["Windows",[["install","Install Windows"],["backup","Backup & history"]]]];
+const NAVG=[["Overview",[["dash","Dashboard"],["game","Game Mode"],["fav","Starred"]]],["Speed up",[["tweaks","Tweaks"],["perf","Performance"],["power","Power"],["clean","Clean"]]],["Apps",[["apps","Apps"]]],["Windows",[["install","Install Windows"],["backup","Backup & history"]]]];
 const NAV=NAVG.flatMap(g=>g[1]);
 let FAV=new Set();
+const PW={d:null,busy:false};
 const CL={items:[["temp","Temporary files","Leftovers from installers and apps",1],["wu","Windows Update downloads","Update files Windows already installed",1],["dorepo","Delivery Optimization cache","Update pieces Windows keeps to share with other PCs",1],["dumps","Crash dumps and error reports","Saved after a crash or app error",1],["shader","Shader cache","NVIDIA, AMD, Intel and DirectX. Games rebuild it on first launch, so clear it after a driver update or when games stutter",0],["thumbs","Thumbnail cache","Picture previews in File Explorer. Rebuilt when needed",0],["recycle","Recycle Bin","Files you deleted",0]],sel:null,sizes:null,busy:false,freed:null,sched:null};
 const A={tab:"get",sel:new Set(),prog:{},inst:null,cat:null,list:null,su:null,q:"",busy:false,sure:null,err:null};
 const STAR='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3l-5.5 2.9 1-6.2L3 9.6l6.2-.9z"/></svg>';
@@ -200,6 +201,20 @@ function renderTW(){
     P.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{const k=b.dataset.rm;if(A.sure!==k){A.sure=k;renderTW();return}A.sure=null;A.removing=k;host.send({cmd:"apps",act:"remove",key:k});renderTW()});
     P.querySelectorAll("[data-su]").forEach(b=>b.onclick=()=>{const it=A.su.find(x=>x.id===b.dataset.su);host.send({cmd:"apps",act:"toggle",id:it.id,on:!it.on});it.on=!it.on;renderTW()});
   }
+  else if(T.page==="power"){
+    if(!PW.d&&!PW.asked){PW.asked=1;host.send({cmd:"power",act:"list"})}
+    const d=PW.d,ps=(act,o)=>{PW.busy=true;host.send(Object.assign({cmd:"power",act},o));renderTW()};
+    const act=d&&d.plans.find(p=>p.active);
+    P.innerHTML=`<h1>Power</h1><p class="sub">Pick how your PC uses power. Settings below change the plan you're using now.</p>`+(!d?`<p class="sub">Reading…</p>`:`
+    <h2>Power plans</h2><div class="list">${d.plans.map(p=>`<div class="row"><div class="t"><b>${esc(p.name)}${p.active?`<span class="tag Rec">In use</span>`:""}</b><small>${p.name.match(/Ultimate/i)?"Everything at full speed all the time. Runs hotter, best on desktops":p.name.match(/High performance/i)?"Fast, with some power saving when idle":p.name.match(/Balanced/i)?"Windows default. Saves power when it can":p.name.match(/WhatOS/i)?"Tuned by WhatOS for games":"Your own plan"}</small></div>${p.active?"":`<button class="btn" data-pu="${p.id}" ${PW.busy?"disabled":""}>Use</button>`}${!p.builtin&&!p.active?`<button class="btn" data-pd="${p.id}" style="color:var(--danger)" ${PW.busy?"disabled":""}>Delete</button>`:""}</div>`).join("")}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${d.plans.some(p=>p.name.match(/Ultimate/i))?"":`<button class="btn" id="pult" ${PW.busy?"disabled":""}>Add Ultimate Performance</button>`}${d.plans.some(p=>p.id==="8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c")?"":`<button class="btn" id="phigh" ${PW.busy?"disabled":""}>Add High performance</button>`}</div>
+    ${d.laptop?`<p class="sub">This is a laptop. Ultimate Performance can make it run hot, so test it before gaming.</p>`:""}
+    <h2>Settings for ${esc(act?act.name:"this plan")}</h2><div class="list">${d.opts.map(o=>`<div class="row"><div class="t"><b>${esc(o.name)}</b><small>${esc(o.desc)}</small></div><button class="sw ${o.on?"on":""}" data-po="${o.id}" ${PW.busy?"disabled":""} aria-label="${esc(o.name)}"></button></div>`).join("")}</div>`);
+    P.querySelectorAll("[data-pu]").forEach(b=>b.onclick=()=>ps("use",{id:b.dataset.pu}));
+    P.querySelectorAll("[data-pd]").forEach(b=>b.onclick=()=>ps("delete",{id:b.dataset.pd}));
+    P.querySelectorAll("[data-po]").forEach(b=>b.onclick=()=>{const o=d.opts.find(x=>x.id===b.dataset.po);ps("set",{id:o.id,on:!o.on})});
+    const pu=$("#pult");if(pu)pu.onclick=()=>ps("add",{id:"ultimate"});const ph=$("#phigh");if(ph)ph.onclick=()=>ps("add",{id:"high"});
+  }
   else if(T.page==="clean"){
     if(!CL.sizes&&!CL.asked){CL.asked=1;host.send({cmd:"clean",act:"scan"})}
     if(!CL.sel)CL.sel=new Set(CL.items.filter(i=>i[3]).map(i=>i[0]));
@@ -304,6 +319,7 @@ function failed(msg){
 window.chrome.webview.addEventListener("message",e=>{const m=e.data;
   if(m.type==="last"){S.last=m.picks;if(PAGES[S.p]==="welcome")render()}
   if(m.type==="selfupd"){const u=$("#upd");if(m.updated&&m.updated!=="dev"){u.innerHTML=`<span>Updated to ${esc(m.updated)}</span>`;setTimeout(()=>{if(u.querySelector("span"))u.innerHTML=""},10000)}if(m.ready){u.innerHTML=`<button id="updrs">${esc(m.ready)} ready · Restart</button>`;$("#updrs").onclick=()=>host.send({cmd:"selfrestart"})}}
+  if(m.type==="power"){PW.busy=false;if(m.err)alert(m.err);else PW.d=m.data;if(T.page==="power")renderTW()}
   if(m.type==="clean"){CL.busy=false;if(m.err)alert(m.err);else{CL.sizes=m.sizes;if(m.sched)CL.sched=m.sched;if(m.freed)CL.freed=m.freed}if(T.page==="clean")renderTW()}
   if(m.type==="apps"){if(m.err){A.err=m.err;A.busy=false;A.removing=null}else if(m.act==="catalog"){A.cat=m.catalog;if(m.installed)A.inst=m.installed}else if(m.act==="installed"){A.list=m.list;A.removing=null}else if(m.act==="startup")A.su=m.list;if(T.page==="apps"&&!(document.activeElement&&document.activeElement.id==="aq"))renderTW()}
   if(m.type==="appsprog"){if(m.st==="end"){A.busy=false;A.list=null;A.askedL=0}else{A.prog[m.id]=m.st;if(m.st==="done"){A.inst=(A.inst||[]).concat(m.id)}}if(T.page==="apps")renderTW()}

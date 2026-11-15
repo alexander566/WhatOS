@@ -386,6 +386,7 @@ namespace WhatOS
                             });
                             break;
                         }
+                    case "power": { var act = m["act"] as string; Task.Run(() => { try { Send(new { type = "power", data = PowerPlans.Do(act, m) }); } catch (Exception ex) { Send(new { type = "power", err = ex.Message }); } }); break; }
                     case "stats": if (statsBusy || WindowState == FormWindowState.Minimized) break; statsBusy = true; Task.Run(() => { try { try { Send(new { type = "stats", data = Stats() }); } catch (Exception ex) { Send(new { type = "stats", err = ex.Message }); } } finally { statsBusy = false; } }); break;
                     case "sysinfo": Task.Run(() => SendCached("sysinfo", SysInfo)); break;
                     case "health": Task.Run(() => SendCached("health", Health)); break;
@@ -1012,5 +1013,50 @@ static class Cleaner
         string a = when == "off" ? "/delete /tn WhatOSClean /f" : "/create /tn WhatOSClean /f /rl highest /tr \"\\\"" + exe + "\\\" --clean temp,shader,dumps\" " + (when == "monthly" ? "/sc monthly /d 1 /st 12:00" : when == "daily" ? "/sc daily /st 12:00" : "/sc weekly /d SUN /st 12:00");
         using (var p = Process.Start(new ProcessStartInfo("schtasks.exe", a) { UseShellExecute = false, CreateNoWindow = true })) p.WaitForExit();
         if (when != "off") using (var p = Process.Start(new ProcessStartInfo("powershell.exe", "-NoProfile -Command \"$s=Get-ScheduledTask WhatOSClean; $s.Settings.StartWhenAvailable=$true; $s.Settings.DisallowStartIfOnBatteries=$false; $s | Set-ScheduledTask | Out-Null\"") { UseShellExecute = false, CreateNoWindow = true })) p.WaitForExit();
+    }
+}
+
+static class PowerPlans
+{
+    static readonly string[][] Opts =
+    {
+        new[] { "usb", "USB never sleeps", "Mouse, keyboard and headset stay awake. Fixes USB devices cutting out", "2a737441-1930-4402-8d77-b2bebba308a3", "48e6b7a6-50f5-4782-a5d4-53bb8f07e226", "0", "1", "" },
+        new[] { "pcie", "PCIe power saving off", "Graphics card and NVMe drive stay at full link speed", "501a4d13-42af-4429-9fd1-a8218c268e20", "ee12f906-d277-404b-b6da-e5fa1a576df5", "0", "1", "" },
+        new[] { "sleep", "Never sleep when plugged in", "The PC stays on until you turn it off", "238c9fa8-0aad-41ed-83f4-97be242c8f20", "29f6c1db-86da-48c5-9fdb-f2b67b1f44da", "0", "1800", "" },
+        new[] { "disk", "Drives never turn off", "No wait for a hard drive to spin up again", "0012ee47-9041-4b5d-9b77-535fba8b1442", "6738e2c4-e8a5-4a42-b16a-e040e769756e", "0", "1200", "" },
+        new[] { "display", "Screen never turns off when plugged in", "Good for watching or long downloads", "7516b95f-f776-4464-8c53-06167f40cc99", "3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e", "0", "600", "" },
+        new[] { "lid", "Keep running when the lid closes", "Plugged in only. Handy with an external monitor", "4f971e89-eebd-4455-a8de-9e59040e7347", "5ca83367-6e45-459f-a27b-476b1d01c936", "0", "1", "laptop" },
+    };
+    static string Pc(string a) { using (var p = Process.Start(new ProcessStartInfo("powercfg.exe", a) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true })) { var o = p.StandardOutput.ReadToEnd(); p.WaitForExit(); return o; } }
+    static bool Laptop => SystemInformation.PowerStatus.BatteryChargeStatus != BatteryChargeStatus.NoSystemBattery;
+    public static object Do(string act, Dictionary<string, object> m)
+    {
+        if (act == "use") Pc("/setactive " + m["id"]);
+        else if (act == "add")
+        {
+            var src = (string)m["id"] == "ultimate" ? "e9a42b02-d5df-448d-aa00-03f14749eb61" : "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c";
+            var o = Pc("/duplicatescheme " + src);
+            var g = System.Text.RegularExpressions.Regex.Match(o, "[0-9a-f]{8}-[0-9a-f-]{27}").Value;
+            if (g.Length > 0) Pc("/setactive " + g);
+        }
+        else if (act == "delete") Pc("/delete " + m["id"]);
+        else if (act == "set")
+        {
+            var o = Opts.First(x => x[0] == (string)m["id"]);
+            Pc("/setacvalueindex SCHEME_CURRENT " + o[3] + " " + o[4] + " " + ((bool)m["on"] ? o[5] : o[6]));
+            Pc("/setactive SCHEME_CURRENT");
+        }
+        var plans = new List<object>();
+        foreach (System.Text.RegularExpressions.Match x in System.Text.RegularExpressions.Regex.Matches(Pc("/list"), @"([0-9a-f]{8}-[0-9a-f-]{27})\s+\((.+?)\)(\s*\*)?"))
+            plans.Add(new { id = x.Groups[1].Value, name = x.Groups[2].Value, active = x.Groups[3].Success && x.Groups[3].Value.Contains("*"), builtin = new[] { "381b4222-f694-41f0-9685-ff5bb260df2e", "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c", "a1841308-3541-4fab-bc81-f71556f20b4a" }.Contains(x.Groups[1].Value) });
+        var opts = new List<object>();
+        foreach (var o in Opts)
+        {
+            if (o[7] == "laptop" && !Laptop) continue;
+            var q = System.Text.RegularExpressions.Regex.Match(Pc("/q SCHEME_CURRENT " + o[3] + " " + o[4]), @"Current AC Power Setting Index:\s*0x([0-9a-f]+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (!q.Success) continue;
+            opts.Add(new { id = o[0], name = o[1], desc = o[2], on = Convert.ToInt64(q.Groups[1].Value, 16).ToString() == o[5] });
+        }
+        return new { plans, opts, laptop = Laptop };
     }
 }
