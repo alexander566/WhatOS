@@ -648,10 +648,12 @@ Remove-Item 'HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\WhatOSGameMode' -Rec
 $os=Get-CimInstance Win32_OperatingSystem; $cpu=Get-CimInstance Win32_Processor | select -First 1
 $g=@(Get-CimInstance Win32_VideoController | ? { $_.PNPDeviceID -match '^PCI' } | % { [pscustomobject]@{ name=$_.Name; drv=$_.DriverVersion } })
 $dk=Get-PhysicalDisk | ? { $_.DeviceId -eq ((Get-Partition -DriveLetter C).DiskNumber) } | select -First 1
+$pm=@(Get-CimInstance Win32_PhysicalMemory); $mt=@{20='DDR';21='DDR2';24='DDR3';26='DDR4';30='LPDDR4';34='DDR5';35='LPDDR5'}[[int]($pm[0].SMBIOSMemoryType)]; $sp=($pm | % { if($_.ConfiguredClockSpeed){$_.ConfiguredClockSpeed}else{$_.Speed} } | measure -Maximum).Maximum; $mf=(@($pm | % { ($_.Manufacturer -replace '\s+$','') } | ? { $_ -and $_ -notmatch '^(Unknown|Undefined|0+)$' } | select -Unique) -join '/'); $pn=(@($pm | % { ""$($_.PartNumber)"".Trim() } | ? { $_ } | select -Unique) -join '/')
+$mem=(@($mt, $(if($sp){""$sp MT/s""}), ""$($pm.Count)x$([math]::Round(($pm | select -First 1).Capacity/1GB)) GB"", (""$mf $pn"").Trim()) | ? { $_ }) -join ' · '
 $sb=try{Confirm-SecureBootUEFI -EA Stop}catch{$null}; $tpm=try{(Get-CimInstance -Namespace root\cimv2\security\microsofttpm Win32_Tpm -EA Stop).SpecVersion.Split(',')[0]}catch{''}
 [pscustomobject]@{ host=$env:COMPUTERNAME; os=($os.Caption -replace 'Microsoft ',''); ver=(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').DisplayVersion; build=""$($os.BuildNumber).$((Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').UBR)""
  cpu=($cpu.Name -replace '\s+',' ').Trim(); cores=$cpu.NumberOfCores; threads=$cpu.NumberOfLogicalProcessors; gpus=$g; ram=[math]::Round($os.TotalVisibleMemorySize/1MB)
- disk=$dk.FriendlyName; diskType=[string]$dk.MediaType; fw=$env:firmware_type; secureBoot=$sb; tpm=$tpm } | ConvertTo-Json -Compress -Depth 3"));
+ mem=$mem; disk=$dk.FriendlyName; diskType=[string]$dk.MediaType; fw=$env:firmware_type; secureBoot=$sb; tpm=$tpm } | ConvertTo-Json -Compress -Depth 3"));
 
         object Health() => json.DeserializeObject(Ps(@"
 $r=@()
