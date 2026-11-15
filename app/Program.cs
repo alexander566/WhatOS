@@ -495,6 +495,8 @@ Remove-Item 'HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\WhatOSGameMode' -Rec
         static float freqMhz;
         static List<PerformanceCounter[]> netC;
         static int netAge;
+        static DateTime diskTAt = DateTime.MinValue;
+        static double? diskT;
         static bool netFresh;
         static List<PerformanceCounter> thermC;
         static bool thermNone;
@@ -599,6 +601,23 @@ Remove-Item 'HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\WhatOSGameMode' -Rec
                 if (thermC != null) { var k = thermC.Max(c => c.NextValue()); if (k > 200) ctemp = Math.Round(k - 273.15); }
             }
             catch { thermNone = true; thermC = null; }
+            if ((DateTime.Now - diskTAt).TotalSeconds > 30)
+            {
+                diskTAt = DateTime.Now;
+                Task.Run(() =>
+                {
+                    try
+                    {
+                        double mx = 0;
+                        using (var q = new System.Management.ManagementObjectSearcher(@"root\Microsoft\Windows\Storage", "SELECT * FROM MSFT_PhysicalDisk"))
+                            foreach (System.Management.ManagementObject d0 in q.Get())
+                                foreach (System.Management.ManagementObject r in d0.GetRelated("MSFT_StorageReliabilityCounter"))
+                                    mx = Math.Max(mx, Convert.ToDouble(r["Temperature"] ?? 0));
+                        diskT = mx > 0 ? (double?)mx : null;
+                    }
+                    catch { diskT = null; }
+                });
+            }
             foreach (var l in gpuLuids.ToArray())
             {
                 var t = GpuTemp(l);
@@ -617,7 +636,7 @@ Remove-Item 'HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\WhatOSGameMode' -Rec
                 ramUsed = (double)(ms.ullTotalPhys - ms.ullAvailPhys), ramTotal = (double)ms.ullTotalPhys,
                 diskUsed = (double)(d.TotalSize - d.AvailableFreeSpace), diskTotal = (double)d.TotalSize,
                 disk = Math.Round(disk), procs = (int)procC.NextValue(), uptime = GetTickCount64() / 1000,
-                ghz, rd = Math.Round(rd), wr = Math.Round(wr), rx = Math.Round(rx), tx = Math.Round(tx), vram, ctemp, gtemp
+                ghz, rd = Math.Round(rd), wr = Math.Round(wr), rx = Math.Round(rx), tx = Math.Round(tx), vram, ctemp, gtemp, dtemp = diskT
             };
         }
         [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
